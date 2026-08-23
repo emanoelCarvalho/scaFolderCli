@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { listFiles } from '../../src/fs/files.js';
 import { runCommand } from '../../src/process/exec.js';
 
 /**
@@ -53,10 +54,34 @@ describe('published package', () => {
     expect(stdout).toContain('Presets');
   });
 
-  it('ships its templates', async () => {
-    const templates = path.join(path.dirname(path.dirname(installedBin)), 'templates', 'ai');
-    const entries = await fs.readdir(templates);
-    expect(entries).toContain('ARCHITECTURE.md.eta');
+  it('ships every template the generators need', async () => {
+    const root = path.dirname(path.dirname(installedBin));
+    const templates = path.join(root, 'templates');
+
+    expect(await fs.readdir(path.join(templates, 'ai'))).toContain('ARCHITECTURE.md.eta');
+
+    // The published tarball must carry the whole template tree, not just the
+    // top level: a missing layer only surfaces when a user runs `create`.
+    const packaged = await listFiles(templates);
+    const source = await listFiles(path.resolve(packageRoot, 'templates'));
+    expect(packaged).toEqual(source);
+  });
+
+  it('generates a real project from the installed package', async () => {
+    const target = path.join(workspace, 'from-tarball');
+    await fs.mkdir(target, { recursive: true });
+
+    // --dry-run so the check stays fast: it proves template resolution works
+    // from inside node_modules, which is the failure this test exists for.
+    const { stdout } = await runCommand(
+      process.execPath,
+      [installedBin, 'create', 'tarball-api', '--yes', '--preset', 'nestjs-api', '--dry-run'],
+      { cwd: target, timeout: 120_000 },
+    );
+
+    expect(stdout).toContain('src/modules/auth/auth.service.ts');
+    expect(stdout).toContain('Dockerfile');
+    expect(stdout).toContain('ARCHITECTURE.md');
   });
 
   it('does not ship development files', async () => {
