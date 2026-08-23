@@ -69,17 +69,18 @@ export const FRAMEWORK_CAPABILITIES: Readonly<Record<Framework, FrameworkCapabil
       aiDocumentation: true,
     },
   },
-  // Planned. Rows for unimplemented frameworks describe the intended scope;
-  // nothing is offered to users until a generator is registered.
+  // Implemented. Like the NestJS row, this states exactly what is generated.
   express: {
     label: 'Express',
     hint: 'Minimal HTTP framework, structure supplied by scafoldercli',
     projectTypes: ['api'],
-    architectures: ['modular', 'layered', 'clean'],
-    databases: ['postgresql', 'mysql', 'mongodb', 'sqlite', 'none'],
-    orms: ['prisma', 'typeorm', 'sequelize', 'mongoose', 'none'],
+    architectures: ['modular'],
+    databases: ['postgresql', 'none'],
+    orms: ['prisma', 'none'],
     authentication: ['jwt', 'none'],
-    testing: ['vitest', 'jest', 'none'],
+    // Jest under ESM needs its own configuration and its own validated run;
+    // until that exists it is not offered.
+    testing: ['vitest', 'none'],
     repositoryPattern: true,
     docker: true,
     defaults: {
@@ -94,6 +95,8 @@ export const FRAMEWORK_CAPABILITIES: Readonly<Record<Framework, FrameworkCapabil
       aiDocumentation: true,
     },
   },
+  // Planned. Rows for unimplemented frameworks describe the intended scope;
+  // nothing is offered to users until a generator is registered.
   nextjs: {
     label: 'Next.js',
     hint: 'React web client generated through create-next-app',

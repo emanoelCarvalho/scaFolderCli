@@ -1,0 +1,42 @@
+import { Router } from 'express';
+<% if (it.hasDatabase) { -%>
+import type { PrismaClient } from '@prisma/client';
+<% } -%>
+
+/**
+ * Liveness answers "is the process alive"; readiness answers "can it serve
+ * traffic". They must mean different things: a database outage should stop
+ * traffic being routed here, not restart the process.
+ */
+<% if (it.hasDatabase) { -%>
+export function healthRoutes(prisma: PrismaClient): Router {
+<% } else { -%>
+export function healthRoutes(): Router {
+<% } -%>
+  const router = Router();
+
+  router.get('/live', (_req, res) => {
+    res.json({ status: 'ok', uptimeSeconds: Math.round(process.uptime()) });
+  });
+<% if (it.hasDatabase) { -%>
+
+  router.get('/ready', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch {
+      // The reason is deliberately not echoed back: it would leak connection
+      // details. The failure is logged by the error handler.
+      res.status(503).json({ status: 'unavailable', database: 'down' });
+      return;
+    }
+    res.json({ status: 'ok', database: 'up' });
+  });
+<% } else { -%>
+
+  router.get('/ready', (_req, res) => {
+    res.json({ status: 'ok' });
+  });
+<% } -%>
+
+  return router;
+}

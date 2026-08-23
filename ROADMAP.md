@@ -39,7 +39,9 @@ NestJS → REST API → PostgreSQL → Prisma → JWT → repository pattern
 - [x] Vitest layer with SWC, plus runner-agnostic specs that also run under Jest
 - [x] Dockerfile, compose file, `.dockerignore`
 - [x] Golden project smoke test: install → prisma generate → lint → test → build
-- [ ] Golden project smoke test: docker build _(needs a running Docker daemon)_
+- [x] Golden project smoke test: docker build, running as a non-root user
+- [x] Container verified running: connects to a real database, serves auth,
+      reports healthy, and shuts down cleanly on SIGTERM
 - [ ] Layered and clean architecture layouts
 - [ ] MySQL, SQLite and MongoDB
 - [ ] TypeORM, Sequelize and Mongoose
@@ -47,10 +49,26 @@ NestJS → REST API → PostgreSQL → Prisma → JWT → repository pattern
 The matrix only offers what the generator actually produces, so the unchecked
 items above are not selectable yet.
 
-## Phase 3 — Express
+## Phase 3 — Express ✅
 
 Same conceptual specification, adapted to an ecosystem that supplies no
-structure of its own.
+structure of its own: there is no official scaffolder to delegate to, so every
+file comes from scafoldercli's own layers.
+
+- [x] ESM, Express 5, zod validation, pino logging
+- [x] Composition root instead of a dependency-injection container
+- [x] Environment validation, health checks, graceful shutdown
+- [x] Prisma 7 integration with driver adapters
+- [x] Repository pattern behind interfaces, and a coherent layout without it
+- [x] JWT auth with `jose`: register, login, refresh, logout, logout-all, me
+- [x] Vitest, with HTTP-level tests through supertest
+- [x] Dockerfile, compose file, `.dockerignore`
+- [x] Golden project smoke test: install → typecheck → lint → format → test →
+      build → docker build
+- [x] Container verified running against a real database
+- [ ] Jest (needs its own ESM configuration and validated run)
+- [ ] Layered and clean architecture layouts
+- [ ] MySQL, SQLite and MongoDB
 
 ## Phase 4 — Next.js
 

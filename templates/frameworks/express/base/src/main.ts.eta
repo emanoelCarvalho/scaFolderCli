@@ -1,0 +1,51 @@
+import { createApp } from './app.js';
+import { loadEnv } from './config/env.js';
+import { createContainer, disposeContainer } from './container.js';
+import { createLogger } from './shared/logging/logger.js';
+
+/** How long in-flight requests get to finish before the process is forced down. */
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
+function main(): void {
+  const env = loadEnv();
+  const logger = createLogger(env);
+  const container = createContainer(env, logger);
+  const app = createApp(container);
+
+  // 0.0.0.0, not localhost: inside a container nothing else is reachable.
+  const server = app.listen(env.PORT, '0.0.0.0', () => {
+    logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Server listening');
+  });
+
+  let shuttingDown = false;
+
+  const shutdown = (signal: string): void => {
+    // A second signal during shutdown must not start a second teardown.
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ signal }, 'Shutting down');
+
+    // If a request hangs, exit anyway rather than blocking a deploy forever.
+    const forceExit = setTimeout(() => {
+      logger.error('Shutdown timed out; exiting');
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS);
+    forceExit.unref();
+
+    server.close((error) => {
+      void (async () => {
+        if (error) logger.error({ err: error }, 'Error while closing the server');
+        await disposeContainer(container).catch((disposeError: unknown) => {
+          logger.error({ err: disposeError }, 'Error while releasing resources');
+        });
+        clearTimeout(forceExit);
+        process.exit(error ? 1 : 0);
+      })();
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
+
+main();

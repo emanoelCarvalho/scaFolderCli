@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+<% if (it.config.testing === 'vitest') { -%>
+    "types": ["node", "vitest/globals"],
+<% } else if (it.config.testing === 'jest') { -%>
+    "types": ["node", "jest"],
+<% } else { -%>
+    "types": ["node"],
+<% } -%>
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "isolatedModules": true,
+
+    "outDir": "dist",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  // Root-level config files are type-checked and linted too; only `src` is
+  // compiled into `dist`, which `tsconfig.build.json` pins with `rootDir`.
+  "include": ["src/**/*", "*.ts", "*.mts"],
+  "exclude": ["node_modules", "dist"]
+}

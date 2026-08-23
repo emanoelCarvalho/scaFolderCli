@@ -1,0 +1,71 @@
+import { Router } from 'express';
+import { rateLimit } from 'express-rate-limit';
+import type { Container } from '../../container.js';
+import { UnauthorizedError } from '../../shared/errors/domain-error.js';
+import { validateBody } from '../../shared/http/validate.js';
+import {
+  type LoginInput,
+  type RefreshInput,
+  type RegisterInput,
+  loginSchema,
+  refreshSchema,
+  registerSchema,
+} from './auth.schemas.js';
+import { requireAuth } from './require-auth.js';
+
+/**
+ * Credential endpoints are rate limited far more tightly than the rest of the
+ * API: they are the ones worth brute-forcing.
+ */
+const credentialLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
+const refreshLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
+export function authRoutes(container: Container): Router {
+  const router = Router();
+  const { auth, tokens } = container;
+
+  router.post('/register', credentialLimiter, validateBody(registerSchema), async (req, res) => {
+    const { email, password } = req.body as RegisterInput;
+    res.status(201).json(await auth.register(email, password));
+  });
+
+  router.post('/login', credentialLimiter, validateBody(loginSchema), async (req, res) => {
+    const { email, password } = req.body as LoginInput;
+    res.json(await auth.login(email, password));
+  });
+
+  router.post('/refresh', refreshLimiter, validateBody(refreshSchema), async (req, res) => {
+    const { refreshToken } = req.body as RefreshInput;
+    res.json(await auth.refresh(refreshToken));
+  });
+
+  router.post('/logout', validateBody(refreshSchema), async (req, res) => {
+    const { refreshToken } = req.body as RefreshInput;
+    await auth.logout(refreshToken);
+    res.status(204).end();
+  });
+
+  router.post('/logout-all', requireAuth(tokens), async (req, res) => {
+    if (!req.user) throw new UnauthorizedError('Missing authenticated user');
+    await auth.logoutAll(req.user.id);
+    res.status(204).end();
+  });
+
+  router.get('/me', requireAuth(tokens), async (req, res) => {
+    if (!req.user) throw new UnauthorizedError('Missing authenticated user');
+    res.json(await auth.me(req.user.id));
+  });
+
+  return router;
+}

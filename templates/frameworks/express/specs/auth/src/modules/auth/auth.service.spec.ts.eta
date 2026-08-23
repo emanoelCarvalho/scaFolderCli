@@ -1,0 +1,274 @@
+import type { Env } from '../../config/env.js';
+import { ConflictError, UnauthorizedError } from '../../shared/errors/domain-error.js';
+import type { Logger } from '../../shared/logging/logger.js';
+import type { User } from '../users/user.js';
+import { UsersService } from '../users/users.service.js';
+import { AuthService } from './auth.service.js';
+import type { RefreshTokenRecord } from './refresh-token.js';
+import { TokensService } from './tokens.service.js';
+
+/**
+ * In-memory stand-ins for the repositories. Real objects rather than mocks:
+ * the point of these tests is the rotation and revocation behaviour, which a
+ * mock that returns whatever it is told would not exercise.
+ */
+class InMemoryUsers {
+  readonly rows: User[] = [];
+
+  findById(id: string): Promise<User | null> {
+    return Promise.resolve(this.rows.find((user) => user.id === id) ?? null);
+  }
+
+  findByEmail(email: string): Promise<User | null> {
+    return Promise.resolve(this.rows.find((user) => user.email === email) ?? null);
+  }
+
+  create(data: { email: string; passwordHash: string }): Promise<User> {
+    const user: User = {
+      id: `user-${this.rows.length + 1}`,
+      email: data.email,
+      passwordHash: data.passwordHash,
+      createdAt: new Date(),
+    };
+    this.rows.push(user);
+    return Promise.resolve(user);
+  }
+}
+
+class InMemoryRefreshTokens {
+  readonly rows: RefreshTokenRecord[] = [];
+
+  create(data: {
+    tokenHash: string;
+    familyId: string;
+    userId: string;
+    expiresAt: Date;
+  }): Promise<RefreshTokenRecord> {
+    const row: RefreshTokenRecord = {
+      id: `token-${this.rows.length + 1}`,
+      revokedAt: null,
+      ...data,
+    };
+    this.rows.push(row);
+    return Promise.resolve(row);
+  }
+
+  findByHash(tokenHash: string): Promise<RefreshTokenRecord | null> {
+    return Promise.resolve(this.rows.find((row) => row.tokenHash === tokenHash) ?? null);
+  }
+
+  revoke(id: string): Promise<void> {
+    const row = this.rows.find((candidate) => candidate.id === id);
+    if (row) row.revokedAt = new Date();
+    return Promise.resolve();
+  }
+
+  revokeFamily(familyId: string): Promise<void> {
+    for (const row of this.rows) {
+      if (row.familyId === familyId && row.revokedAt === null) row.revokedAt = new Date();
+    }
+    return Promise.resolve();
+  }
+
+  revokeAllForUser(userId: string): Promise<void> {
+    for (const row of this.rows) {
+      if (row.userId === userId && row.revokedAt === null) row.revokedAt = new Date();
+    }
+    return Promise.resolve();
+  }
+}
+
+const ENV = {
+  NODE_ENV: 'test',
+  PORT: 3000,
+  CORS_ORIGIN: '*',
+  LOG_LEVEL: 'silent',
+  DATABASE_URL: 'postgresql://unused',
+  JWT_ACCESS_SECRET: 'test-secret-that-is-at-least-32-characters-long',
+  JWT_ACCESS_TTL: '15m',
+  JWT_REFRESH_TTL_DAYS: 30,
+} as Env;
+
+/** The service only logs; a no-op double keeps the output clean. */
+const LOGGER = { warn: () => undefined } as unknown as Logger;
+
+function build(): { auth: AuthService; tokens: InMemoryRefreshTokens; users: InMemoryUsers } {
+  const users = new InMemoryUsers();
+  const refreshTokens = new InMemoryRefreshTokens();
+  const tokensService = new TokensService(ENV);
+<% if (it.hasRepository) { -%>
+  // No casts needed: the doubles satisfy the repository interfaces, which is
+  // itself part of what this test proves.
+  const usersService = new UsersService(users);
+  const auth = new AuthService(usersService, tokensService, refreshTokens, LOGGER);
+<% } else { -%>
+  // Without the repository pattern the services depend on the concrete Prisma
+  // classes, whose private state makes them structurally unmatchable. The casts
+  // are safe: only the public methods are exercised.
+  const usersService = new UsersService(users as unknown as UsersDependency);
+  const auth = new AuthService(
+    usersService,
+    tokensService,
+    refreshTokens as unknown as RefreshTokensDependency,
+    LOGGER,
+  );
+<% } -%>
+
+  return { auth, tokens: refreshTokens, users };
+}
+
+<% if (!it.hasRepository) { -%>
+type UsersDependency = ConstructorParameters<typeof UsersService>[0];
+type RefreshTokensDependency = ConstructorParameters<typeof AuthService>[2];
+
+<% } -%>
+const EMAIL = 'someone@example.com';
+const PASSWORD = 'correct-horse-battery-staple';
+
+describe('AuthService', () => {
+  it('registers a user and issues a session', async () => {
+    const { auth } = build();
+    const result = await auth.register(EMAIL, PASSWORD);
+
+    expect(result.user.email).toBe(EMAIL);
+    expect(result.accessToken).toBeTruthy();
+    expect(result.refreshToken).toBeTruthy();
+  });
+
+  it('never stores or returns the plaintext password', async () => {
+    const { auth, users } = build();
+    await auth.register(EMAIL, PASSWORD);
+
+    const stored = users.rows[0];
+    expect(stored?.passwordHash).not.toContain(PASSWORD);
+    expect(stored?.passwordHash.startsWith('$argon2id$')).toBe(true);
+  });
+
+  it('never stores the refresh token itself, only its hash', async () => {
+    const { auth, tokens } = build();
+    const result = await auth.register(EMAIL, PASSWORD);
+
+    expect(tokens.rows[0]?.tokenHash).not.toBe(result.refreshToken);
+  });
+
+  it('rejects a duplicate registration', async () => {
+    const { auth } = build();
+    await auth.register(EMAIL, PASSWORD);
+    await expect(auth.register(EMAIL, PASSWORD)).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it('logs in with correct credentials', async () => {
+    const { auth } = build();
+    await auth.register(EMAIL, PASSWORD);
+    await expect(auth.login(EMAIL, PASSWORD)).resolves.toMatchObject({
+      user: { email: EMAIL },
+    });
+  });
+
+  it('rejects a wrong password', async () => {
+    const { auth } = build();
+    await auth.register(EMAIL, PASSWORD);
+    await expect(auth.login(EMAIL, 'wrong-password-entirely')).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
+  });
+
+  it('gives the same message for an unknown email and a wrong password', async () => {
+    const { auth } = build();
+    await auth.register(EMAIL, PASSWORD);
+
+    const unknown = await auth.login('nobody@example.com', PASSWORD).catch((e: Error) => e.message);
+    const wrong = await auth.login(EMAIL, 'wrong-password-entirely').catch((e: Error) => e.message);
+
+    expect(unknown).toBe(wrong);
+  });
+
+  it('rotates the refresh token, invalidating the previous one', async () => {
+    const { auth } = build();
+    const first = await auth.login(...(await registered(auth)));
+    const second = await auth.refresh(first.refreshToken);
+
+    expect(second.refreshToken).not.toBe(first.refreshToken);
+    await expect(auth.refresh(first.refreshToken)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('revokes the whole session family when a rotated token is reused', async () => {
+    const { auth, tokens } = build();
+    const registration = await auth.register(EMAIL, PASSWORD);
+    const login = await auth.login(EMAIL, PASSWORD);
+    const familyId = tokens.rows.at(-1)?.familyId;
+
+    const rotated = await auth.refresh(login.refreshToken);
+
+    // Someone replays the already-rotated token.
+    await expect(auth.refresh(login.refreshToken)).rejects.toBeInstanceOf(UnauthorizedError);
+
+    // The legitimate holder is logged out too: that is the intended response
+    // to two parties holding the same token.
+    await expect(auth.refresh(rotated.refreshToken)).rejects.toBeInstanceOf(UnauthorizedError);
+
+    const family = tokens.rows.filter((row) => row.familyId === familyId);
+    expect(family.length).toBeGreaterThan(1);
+    expect(family.every((row) => row.revokedAt !== null)).toBe(true);
+
+    // Only the compromised session is affected: other sessions keep working.
+    await expect(auth.refresh(registration.refreshToken)).resolves.toBeTruthy();
+  });
+
+  it('rejects an expired refresh token', async () => {
+    const { auth, tokens } = build();
+    const session = await auth.login(...(await registered(auth)));
+
+    const row = tokens.rows.at(-1);
+    if (row) row.expiresAt = new Date(Date.now() - 1000);
+
+    await expect(auth.refresh(session.refreshToken)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('rejects an unknown refresh token', async () => {
+    const { auth } = build();
+    await expect(auth.refresh('not-a-real-token')).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('revokes the session on logout', async () => {
+    const { auth } = build();
+    const session = await auth.login(...(await registered(auth)));
+
+    await auth.logout(session.refreshToken);
+    await expect(auth.refresh(session.refreshToken)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('treats logging out with an unknown token as a no-op', async () => {
+    const { auth } = build();
+    await expect(auth.logout('not-a-real-token')).resolves.toBeUndefined();
+  });
+
+  it('revokes every session on logout-all', async () => {
+    const { auth } = build();
+    await registered(auth);
+    const deviceOne = await auth.login(EMAIL, PASSWORD);
+    const deviceTwo = await auth.login(EMAIL, PASSWORD);
+
+    await auth.logoutAll(deviceOne.user.id);
+
+    await expect(auth.refresh(deviceOne.refreshToken)).rejects.toBeInstanceOf(UnauthorizedError);
+    await expect(auth.refresh(deviceTwo.refreshToken)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('keeps other sessions alive when one logs out', async () => {
+    const { auth } = build();
+    await registered(auth);
+    const deviceOne = await auth.login(EMAIL, PASSWORD);
+    const deviceTwo = await auth.login(EMAIL, PASSWORD);
+
+    await auth.logout(deviceOne.refreshToken);
+
+    await expect(auth.refresh(deviceTwo.refreshToken)).resolves.toBeTruthy();
+  });
+});
+
+/** Registers the fixture user and returns login arguments. */
+async function registered(auth: AuthService): Promise<[string, string]> {
+  await auth.register(EMAIL, PASSWORD);
+  return [EMAIL, PASSWORD];
+}

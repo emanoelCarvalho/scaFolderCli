@@ -1,0 +1,12 @@
+import type { User } from './user.js';
+
+/**
+ * What the users module needs from storage, expressed without reference to any
+ * ORM. Swapping <%= it.config.orm %> means writing another implementation of
+ * this interface and passing it in the composition root.
+ */
+export interface UsersRepository {
+  findById(id: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  create(data: { email: string; passwordHash: string }): Promise<User>;
+}

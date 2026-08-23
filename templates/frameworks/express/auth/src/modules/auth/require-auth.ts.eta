@@ -1,0 +1,35 @@
+import type { RequestHandler } from 'express';
+import { UnauthorizedError } from '../../shared/errors/domain-error.js';
+import type { TokensService } from './tokens.service.js';
+import './auth-user.js';
+
+/**
+ * Verifies the bearer access token and attaches the caller to the request.
+ * Routes behind this middleware can rely on `req.user` being present.
+ */
+export function requireAuth(tokens: TokensService): RequestHandler {
+  return async (req, _res, next) => {
+    const token = extractBearerToken(req.headers.authorization);
+
+    if (!token) {
+      next(new UnauthorizedError('Missing bearer token'));
+      return;
+    }
+
+    try {
+      const payload = await tokens.verifyAccessToken(token);
+      req.user = { id: payload.sub, email: payload.email };
+      next();
+    } catch {
+      // Expired, malformed and wrongly-signed tokens are all the same to the
+      // caller: the reason would only help someone probing the endpoint.
+      next(new UnauthorizedError('Invalid or expired access token'));
+    }
+  };
+}
+
+function extractBearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const [scheme, value] = header.split(' ');
+  return scheme?.toLowerCase() === 'bearer' && value ? value : null;
+}

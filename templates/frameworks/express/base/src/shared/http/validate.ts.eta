@@ -1,0 +1,32 @@
+import type { NextFunction, Request, Response } from 'express';
+import type { ZodType } from 'zod';
+import { RequestValidationError } from '../errors/domain-error.js';
+
+/**
+ * Validates and replaces `req.body` with the parsed result.
+ *
+ * The parsed value is assigned back deliberately: everything downstream then
+ * works with a typed, stripped object, and a property the schema does not
+ * declare cannot reach a handler.
+ */
+export function validateBody<T>(schema: ZodType<T>) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    const result = schema.safeParse(req.body);
+
+    if (!result.success) {
+      next(
+        new RequestValidationError(
+          'Request validation failed',
+          result.error.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        ),
+      );
+      return;
+    }
+
+    req.body = result.data;
+    next();
+  };
+}

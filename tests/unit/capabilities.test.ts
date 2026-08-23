@@ -63,7 +63,9 @@ describe('matrix consistency', () => {
 
 describe('option narrowing', () => {
   it('offers only ORMs valid for both the database and the framework', () => {
-    expect(availableOrms('express', 'mongodb').map((o) => o.value)).toEqual(['prisma', 'mongoose']);
+    // The engine itself supports three ORMs; the framework narrows it to one.
+    expect(DATABASE_ORMS.postgresql.length).toBeGreaterThan(1);
+    expect(availableOrms('nestjs', 'postgresql').map((o) => o.value)).toEqual(['prisma']);
   });
 
   it('offers only what the implemented NestJS generator actually produces', () => {
@@ -96,10 +98,8 @@ describe('findIncompatibilities', () => {
   });
 
   it('rejects mongoose with postgresql', () => {
-    // express declares mongoose support, so only the database rule can fire.
-    const problems = findIncompatibilities({ ...base, framework: 'express', orm: 'mongoose' });
-    expect(problems).toHaveLength(1);
-    expect(problems[0]).toContain('mongoose');
+    const problems = findIncompatibilities({ ...base, orm: 'mongoose' });
+    expect(problems.join(' ')).toContain('cannot be used with database "postgresql"');
   });
 
   it('rejects JWT for an API with no database', () => {

@@ -1,0 +1,35 @@
+import { ConflictError, NotFoundError } from '../../shared/errors/domain-error.js';
+import type { User } from './user.js';
+<% if (it.hasRepository) { -%>
+import type { UsersRepository } from './users.repository.js';
+<% } else { -%>
+import type { PrismaUsersRepository } from './infrastructure/prisma-users.repository.js';
+<% } -%>
+
+export class UsersService {
+<% if (it.hasRepository) { -%>
+  constructor(private readonly users: UsersRepository) {}
+<% } else { -%>
+  constructor(private readonly users: PrismaUsersRepository) {}
+<% } -%>
+
+  async getById(id: string): Promise<User> {
+    const user = await this.users.findById(id);
+    if (!user) throw new NotFoundError('User not found');
+    return user;
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.users.findByEmail(email);
+  }
+
+  /**
+   * Rejects a duplicate email up front. The unique index is still the real
+   * guarantee; this check exists to return a clear 409 instead of a 500.
+   */
+  async create(email: string, passwordHash: string): Promise<User> {
+    const existing = await this.users.findByEmail(email);
+    if (existing) throw new ConflictError('Email already registered');
+    return this.users.create({ email, passwordHash });
+  }
+}

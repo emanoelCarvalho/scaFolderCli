@@ -1,0 +1,32 @@
+import { pino } from 'pino';
+import type { Env } from '../../config/env.js';
+
+/**
+ * One logger for the process.
+ *
+ * Structured JSON in production so aggregators can parse it; pretty-printed
+ * nowhere, because a dependency whose only job is to make development output
+ * prettier is not worth shipping. Pipe through `pino-pretty` locally if you
+ * want that.
+ */
+export function createLogger(env: Env) {
+  return pino({
+    level: env.LOG_LEVEL,
+    // Anything that could carry a credential is removed before it is written.
+    redact: {
+      paths: [
+        'req.headers.authorization',
+        'req.headers.cookie',
+        'req.body.password',
+        'req.body.refreshToken',
+        'password',
+        'passwordHash',
+        'refreshToken',
+        'accessToken',
+      ],
+      censor: '[redacted]',
+    },
+  });
+}
+
+export type Logger = ReturnType<typeof createLogger>;

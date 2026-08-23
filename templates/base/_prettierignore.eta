@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+<% if (it.isPrisma) { -%>
+prisma/migrations
+<% } -%>
+
+# Generated documentation. Prettier aligns markdown table pipes to the widest
+# cell, which depends on values chosen at generation time, so a freshly
+# generated project would fail its own format check. The content is prose;
+# formatting it gains nothing.
+README.md
+<% if (it.config.aiDocumentation) { -%>
+ARCHITECTURE.md
+CONVENTIONS.md
+AGENTS.md
+<% } -%>

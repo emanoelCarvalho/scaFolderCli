@@ -1,0 +1,130 @@
+import { randomBytes, randomUUID } from 'node:crypto';
+import { hash, verify } from '@node-rs/argon2';
+import { UnauthorizedError } from '../../shared/errors/domain-error.js';
+import type { Logger } from '../../shared/logging/logger.js';
+import { type PublicUser, toPublicUser } from '../users/user.js';
+import type { UsersService } from '../users/users.service.js';
+<% if (it.hasRepository) { -%>
+import type { RefreshTokenRepository } from './refresh-token.repository.js';
+<% } else { -%>
+import type { PrismaRefreshTokenRepository } from './infrastructure/prisma-refresh-token.repository.js';
+<% } -%>
+import type { TokensService } from './tokens.service.js';
+
+export interface AuthResult {
+  user: PublicUser;
+  accessToken: string;
+  refreshToken: string;
+}
+
+/**
+ * A real Argon2id hash of a value nobody knows, computed once at startup.
+ * Verifying against it when the email is unknown makes a failed login cost the
+ * same either way, so response time cannot reveal which emails are registered.
+ * It has to be a genuine hash: verifying a malformed one fails instantly and
+ * would give the timing difference straight back.
+ */
+const dummyHash = hash(randomBytes(32).toString('hex'));
+
+export class AuthService {
+  constructor(
+    private readonly users: UsersService,
+    private readonly tokens: TokensService,
+<% if (it.hasRepository) { -%>
+    private readonly refreshTokens: RefreshTokenRepository,
+<% } else { -%>
+    private readonly refreshTokens: PrismaRefreshTokenRepository,
+<% } -%>
+    private readonly logger: Logger,
+  ) {}
+
+  async register(email: string, password: string): Promise<AuthResult> {
+    const passwordHash = await hash(password);
+    const user = await this.users.create(email, passwordHash);
+    return this.issueSession(user.id, user.email, toPublicUser(user), randomUUID());
+  }
+
+  async login(email: string, password: string): Promise<AuthResult> {
+    const user = await this.users.findByEmail(email);
+
+    // Always verify something, even when the email is unknown.
+    const passwordMatches = await verify(user?.passwordHash ?? (await dummyHash), password).catch(
+      () => false,
+    );
+
+    // One message for both failure modes: telling the caller which one it was
+    // turns the login endpoint into an account-existence oracle.
+    if (!user || !passwordMatches) {
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
+    return this.issueSession(user.id, user.email, toPublicUser(user), randomUUID());
+  }
+
+  /**
+   * Rotates a refresh token.
+   *
+   * Presenting a token that was already rotated means two parties hold it, so
+   * the whole family is revoked and the legitimate user is forced to log in
+   * again. That is the intended outcome of a suspected token theft.
+   */
+  async refresh(refreshToken: string): Promise<AuthResult> {
+    const stored = await this.refreshTokens.findByHash(this.tokens.hashRefreshToken(refreshToken));
+
+    if (!stored) throw new UnauthorizedError('Invalid refresh token');
+
+    if (stored.revokedAt !== null) {
+      this.logger.warn({ userId: stored.userId }, 'Refresh token reuse detected');
+      await this.refreshTokens.revokeFamily(stored.familyId);
+      throw new UnauthorizedError('Invalid refresh token');
+    }
+
+    if (stored.expiresAt.getTime() <= Date.now()) {
+      throw new UnauthorizedError('Refresh token has expired');
+    }
+
+    const user = await this.users.getById(stored.userId);
+    await this.refreshTokens.revoke(stored.id);
+
+    return this.issueSession(user.id, user.email, toPublicUser(user), stored.familyId);
+  }
+
+  /** Revokes the session the token belongs to, not just the token itself. */
+  async logout(refreshToken: string): Promise<void> {
+    const stored = await this.refreshTokens.findByHash(this.tokens.hashRefreshToken(refreshToken));
+    // Logging out with an unknown token is not an error: the desired end state
+    // — that token cannot be used — already holds.
+    if (stored) await this.refreshTokens.revokeFamily(stored.familyId);
+  }
+
+  async logoutAll(userId: string): Promise<void> {
+    await this.refreshTokens.revokeAllForUser(userId);
+  }
+
+  async me(userId: string): Promise<PublicUser> {
+    return toPublicUser(await this.users.getById(userId));
+  }
+
+  /**
+   * Issues an access token and a fresh refresh token within `familyId`. A new
+   * family means a new login; an existing family means a rotation.
+   */
+  private async issueSession(
+    userId: string,
+    email: string,
+    user: PublicUser,
+    familyId: string,
+  ): Promise<AuthResult> {
+    const accessToken = await this.tokens.issueAccessToken({ sub: userId, email });
+    const refreshToken = this.tokens.generateRefreshToken();
+
+    await this.refreshTokens.create({
+      tokenHash: this.tokens.hashRefreshToken(refreshToken),
+      familyId,
+      userId,
+      expiresAt: this.tokens.refreshTokenExpiry(),
+    });
+
+    return { user, accessToken, refreshToken };
+  }
+}

@@ -1,0 +1,27 @@
+# Copy to .env and fill in. Never commit .env.
+# Every variable here is validated at startup by src/config/env.ts.
+
+NODE_ENV=development
+PORT=<%= it.port %>
+LOG_LEVEL=info
+
+# Comma-separated origins, or * to allow any (development only).
+CORS_ORIGIN=*
+<% if (it.hasDatabase) { -%>
+
+<% if (it.config.database === 'postgresql') { -%>
+# Matches the service in docker-compose.yml. Change the credentials for anything
+# that is not a local development database.
+DATABASE_URL=postgresql://<%= it.dirName %>:<%= it.dirName %>@localhost:<%= it.databasePort %>/<%= it.dirName %>?schema=public
+<% } -%>
+<% } -%>
+<% if (it.hasAuth) { -%>
+
+# Signing key for access tokens. At least 32 characters.
+# Generate one with: openssl rand -base64 48
+JWT_ACCESS_SECRET=replace-me-with-a-long-random-value-at-least-32-chars
+
+# Short-lived access token. Refresh tokens are stored server-side and rotated.
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL_DAYS=30
+<% } -%>

@@ -1,0 +1,76 @@
+import type { ErrorRequestHandler, RequestHandler } from 'express';
+import {
+  BusinessRuleError,
+  ConflictError,
+  DomainError,
+  ForbiddenError,
+  NotFoundError,
+  RequestValidationError,
+  UnauthorizedError,
+} from '../errors/domain-error.js';
+import type { Logger } from '../logging/logger.js';
+
+/** Domain error type → HTTP status. The only place the mapping exists. */
+const STATUS_BY_ERROR = new Map<new (...args: never[]) => DomainError, number>([
+  [RequestValidationError, 400],
+  [UnauthorizedError, 401],
+  [ForbiddenError, 403],
+  [NotFoundError, 404],
+  [ConflictError, 409],
+  [BusinessRuleError, 422],
+]);
+
+/** Anything at or above this is our fault, and is logged in full. */
+const SERVER_ERROR_THRESHOLD = 500;
+
+export function notFoundHandler(): RequestHandler {
+  return (req, res) => {
+    res.status(404).json({
+      statusCode: 404,
+      code: 'NOT_FOUND',
+      message: `Cannot ${req.method} ${req.path}`,
+      path: req.originalUrl,
+      timestamp: new Date().toISOString(),
+    });
+  };
+}
+
+/**
+ * Translates every error into a safe response.
+ *
+ * Unexpected errors are logged in full and reported as a bare 500: stack
+ * traces, SQL and internal identifiers never reach the client.
+ *
+ * Express 5 forwards rejected promises from async handlers here on its own, so
+ * no wrapper around handlers is needed.
+ */
+export function errorHandler(logger: Logger): ErrorRequestHandler {
+  return (error: unknown, req, res, _next) => {
+    const status = statusFor(error);
+
+    if (status >= SERVER_ERROR_THRESHOLD) {
+      logger.error({ err: error, method: req.method, path: req.originalUrl }, 'Request failed');
+    }
+
+    res.status(status).json({
+      statusCode: status,
+      code: error instanceof DomainError ? error.code : 'INTERNAL_ERROR',
+      message:
+        status >= SERVER_ERROR_THRESHOLD
+          ? 'Internal server error'
+          : ((error as Error).message ?? 'Request failed'),
+      ...(error instanceof RequestValidationError ? { details: error.details } : {}),
+      path: req.originalUrl,
+      timestamp: new Date().toISOString(),
+    });
+  };
+}
+
+function statusFor(error: unknown): number {
+  if (error instanceof DomainError) {
+    for (const [type, status] of STATUS_BY_ERROR) {
+      if (error instanceof type) return status;
+    }
+  }
+  return SERVER_ERROR_THRESHOLD;
+}

@@ -1,0 +1,69 @@
+import express from 'express';
+import request from 'supertest';
+<% if (it.hasDatabase) { -%>
+import type { PrismaClient } from '@prisma/client';
+<% } -%>
+import { healthRoutes } from './health.routes.js';
+<% if (it.hasDatabase) { -%>
+
+/** Minimal stand-in for Prisma: only `$queryRaw` is exercised by readiness. */
+function fakePrisma(behaviour: 'up' | 'down'): PrismaClient {
+  return {
+    $queryRaw: () =>
+      behaviour === 'down'
+        ? Promise.reject(new Error('connection refused'))
+        : Promise.resolve([{ '?column?': 1 }]),
+  } as unknown as PrismaClient;
+}
+<% } -%>
+
+<% if (it.hasDatabase) { -%>
+function buildApp(behaviour: 'up' | 'down') {
+  return express().use('/health', healthRoutes(fakePrisma(behaviour)));
+}
+<% } else { -%>
+function buildApp() {
+  return express().use('/health', healthRoutes());
+}
+<% } -%>
+
+describe('health routes', () => {
+  it('reports liveness with an uptime', async () => {
+<% if (it.hasDatabase) { -%>
+    const response = await request(buildApp('up')).get('/health/live');
+<% } else { -%>
+    const response = await request(buildApp()).get('/health/live');
+<% } -%>
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('ok');
+    expect(response.body.uptimeSeconds).toBeGreaterThanOrEqual(0);
+  });
+<% if (it.hasDatabase) { -%>
+
+  it('reports readiness when the database answers', async () => {
+    const response = await request(buildApp('up')).get('/health/ready');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: 'ok', database: 'up' });
+  });
+
+  it('fails readiness with 503 when the database is unreachable', async () => {
+    const response = await request(buildApp('down')).get('/health/ready');
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ status: 'unavailable', database: 'down' });
+  });
+
+  it('does not leak the database error to the caller', async () => {
+    const response = await request(buildApp('down')).get('/health/ready');
+    expect(JSON.stringify(response.body)).not.toContain('connection refused');
+  });
+<% } else { -%>
+
+  it('reports readiness', async () => {
+    const response = await request(buildApp()).get('/health/ready');
+    expect(response.status).toBe(200);
+  });
+<% } -%>
+});

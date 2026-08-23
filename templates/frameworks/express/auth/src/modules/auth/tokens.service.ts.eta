@@ -1,0 +1,65 @@
+import { createHash, randomBytes } from 'node:crypto';
+import { SignJWT, jwtVerify } from 'jose';
+import type { Env } from '../../config/env.js';
+
+export interface AccessTokenPayload {
+  /** Subject: the user id. */
+  sub: string;
+  email: string;
+}
+
+/**
+ * Issues and verifies credentials.
+ *
+ * Access tokens are signed JWTs and are never stored. Refresh tokens are
+ * opaque random strings: they carry no claims, so they cannot be trusted on
+ * their own and must be looked up server-side, which is what makes revocation
+ * possible.
+ *
+ * `jose` is used rather than `jsonwebtoken`: it has no dependencies, is
+ * ESM-native, and builds on Web Crypto.
+ */
+export class TokensService {
+  private readonly secret: Uint8Array;
+
+  constructor(private readonly env: Env) {
+    this.secret = new TextEncoder().encode(env.JWT_ACCESS_SECRET);
+  }
+
+  async issueAccessToken(payload: AccessTokenPayload): Promise<string> {
+    return new SignJWT({ email: payload.email })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setSubject(payload.sub)
+      .setIssuedAt()
+      .setExpirationTime(this.env.JWT_ACCESS_TTL)
+      .sign(this.secret);
+  }
+
+  async verifyAccessToken(token: string): Promise<AccessTokenPayload> {
+    const { payload } = await jwtVerify(token, this.secret);
+
+    if (typeof payload.sub !== 'string' || typeof payload['email'] !== 'string') {
+      throw new Error('Access token is missing required claims');
+    }
+
+    return { sub: payload.sub, email: payload['email'] };
+  }
+
+  /** 256 bits of entropy, URL-safe so it survives headers and JSON unharmed. */
+  generateRefreshToken(): string {
+    return randomBytes(32).toString('base64url');
+  }
+
+  /**
+   * SHA-256 is correct here, unlike for passwords: the input already has 256
+   * bits of entropy, so there is nothing to brute-force and no reason to pay
+   * the cost of a slow KDF on every refresh.
+   */
+  hashRefreshToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  refreshTokenExpiry(from: Date = new Date()): Date {
+    return new Date(from.getTime() + this.env.JWT_REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
+  }
+}

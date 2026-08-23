@@ -1,0 +1,21 @@
+/**
+ * The user as the domain understands it. Deliberately free of <%= it.config.orm %>
+ * types so that business rules never depend on how a user is stored.
+ */
+export interface User {
+  id: string;
+  email: string;
+  passwordHash: string;
+  createdAt: Date;
+}
+
+/** A user as it is safe to expose over HTTP. Never includes the password hash. */
+export interface PublicUser {
+  id: string;
+  email: string;
+  createdAt: Date;
+}
+
+export function toPublicUser(user: User): PublicUser {
+  return { id: user.id, email: user.email, createdAt: user.createdAt };
+}

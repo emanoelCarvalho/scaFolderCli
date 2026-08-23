@@ -141,21 +141,27 @@ Two rules worth knowing:
 
 Run `scafoldercli list` for the full matrix.
 
-### What NestJS produces today
+### What the implemented frameworks produce today
 
-| Choice             | Options            |
-| ------------------ | ------------------ |
-| Project type       | REST API           |
-| Architecture       | Modular            |
-| Database           | PostgreSQL, none   |
-| ORM                | Prisma, none       |
-| Authentication     | JWT, none          |
-| Repository pattern | Yes or no          |
-| Tests              | Vitest, Jest, none |
-| Docker             | Yes or no          |
+| Choice             | NestJS             | Express          |
+| ------------------ | ------------------ | ---------------- |
+| Project type       | REST API           | REST API         |
+| Architecture       | Modular            | Modular          |
+| Database           | PostgreSQL, none   | PostgreSQL, none |
+| ORM                | Prisma, none       | Prisma, none     |
+| Authentication     | JWT, none          | JWT, none        |
+| Repository pattern | Yes or no          | Yes or no        |
+| Tests              | Vitest, Jest, none | Vitest, none     |
+| Docker             | Yes or no          | Yes or no        |
 
 Layered and clean layouts, other databases and other ORMs are planned; they are
 not offered until the generator can actually produce them.
+
+The two paths differ where their ecosystems differ. NestJS delegates its
+baseline to `@nestjs/cli` and uses class-validator and its own DI container.
+Express has no official scaffolder, so scafoldercli supplies the whole
+structure: ESM, zod, pino, `jose`, and a composition root instead of a DI
+container. See [`docs/adr/0008-express-stack.md`](docs/adr/0008-express-stack.md).
 
 ## AI documentation
 

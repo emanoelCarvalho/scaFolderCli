@@ -1,0 +1,27 @@
+import type { PrismaClient } from '@prisma/client';
+import type { User } from '../user.js';
+<% if (it.hasRepository) { -%>
+import type { UsersRepository } from '../users.repository.js';
+<% } -%>
+
+/**
+ * The only place in the users module that knows about Prisma.
+<% if (it.hasRepository) { -%>
+ * Everything above it depends on `UsersRepository`, never on this class.
+<% } -%>
+ */
+export class PrismaUsersRepository<% if (it.hasRepository) { %> implements UsersRepository<% } %> {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async findById(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  async create(data: { email: string; passwordHash: string }): Promise<User> {
+    return this.prisma.user.create({ data });
+  }
+}

@@ -38,7 +38,7 @@ export const PRESETS: Readonly<Record<string, Preset>> = {
     config: {
       framework: 'express',
       projectType: 'api',
-      architecture: 'layered',
+      architecture: 'modular',
       database: 'postgresql',
       orm: 'prisma',
       authentication: 'jwt',

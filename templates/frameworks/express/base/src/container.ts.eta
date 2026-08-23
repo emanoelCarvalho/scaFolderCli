@@ -1,0 +1,67 @@
+<% if (it.hasDatabase) { -%>
+import { createPrismaClient } from './database/prisma.js';
+<% } -%>
+import type { Env } from './config/env.js';
+import type { Logger } from './shared/logging/logger.js';
+<% if (it.hasAuth) { -%>
+import { AuthService } from './modules/auth/auth.service.js';
+import { TokensService } from './modules/auth/tokens.service.js';
+import { PrismaRefreshTokenRepository } from './modules/auth/infrastructure/prisma-refresh-token.repository.js';
+import { UsersService } from './modules/users/users.service.js';
+import { PrismaUsersRepository } from './modules/users/infrastructure/prisma-users.repository.js';
+<% } -%>
+
+/**
+ * The composition root: the single place where concrete implementations are
+ * chosen and wired together.
+ *
+ * Express has no dependency-injection container and does not need one. Wiring
+ * by hand is a few lines, and it means every dependency in the application is
+ * visible in this file rather than resolved at runtime by a framework.
+ */
+export interface Container {
+  env: Env;
+  logger: Logger;
+<% if (it.hasDatabase) { -%>
+  prisma: ReturnType<typeof createPrismaClient>;
+<% } -%>
+<% if (it.hasAuth) { -%>
+  users: UsersService;
+  auth: AuthService;
+  tokens: TokensService;
+<% } -%>
+}
+
+export function createContainer(env: Env, logger: Logger): Container {
+<% if (it.hasDatabase) { -%>
+  const prisma = createPrismaClient(env);
+<% } -%>
+<% if (it.hasAuth) { -%>
+  const users = new UsersService(new PrismaUsersRepository(prisma));
+  const tokens = new TokensService(env);
+  const auth = new AuthService(users, tokens, new PrismaRefreshTokenRepository(prisma), logger);
+<% } -%>
+
+  return {
+    env,
+    logger,
+<% if (it.hasDatabase) { -%>
+    prisma,
+<% } -%>
+<% if (it.hasAuth) { -%>
+    users,
+    auth,
+    tokens,
+<% } -%>
+  };
+}
+
+/** Releases everything the container owns. Called during graceful shutdown. */
+export async function disposeContainer(container: Container): Promise<void> {
+<% if (it.hasDatabase) { -%>
+  await container.prisma.$disconnect();
+<% } else { -%>
+  // Nothing to release yet. Add teardown here as the container grows.
+  await Promise.resolve();
+<% } -%>
+}

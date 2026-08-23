@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src"
+  },
+  // Tests are type-checked by `tsconfig.json`, but never compiled into `dist`:
+  // the production image must not carry them.
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+}

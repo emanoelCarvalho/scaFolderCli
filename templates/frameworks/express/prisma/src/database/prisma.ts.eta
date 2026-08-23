@@ -1,0 +1,15 @@
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
+import type { Env } from '../config/env.js';
+
+/**
+ * The single database connection for the application.
+ *
+ * Prisma 7 connects through a driver adapter, so the connection string comes
+ * from validated configuration rather than from the schema file.
+ */
+export function createPrismaClient(env: Env): PrismaClient {
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
+  });
+}

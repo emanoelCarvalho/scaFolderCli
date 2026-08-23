@@ -1,0 +1,26 @@
+import type { RefreshTokenRecord } from './refresh-token.js';
+
+/**
+ * Server-side refresh-token storage, expressed without reference to any ORM.
+ * Every method here exists to support rotation and revocation; there is no
+ * generic `update`, because generic mutation is how invariants get broken.
+ */
+export interface RefreshTokenRepository {
+  create(data: {
+    tokenHash: string;
+    familyId: string;
+    userId: string;
+    expiresAt: Date;
+  }): Promise<RefreshTokenRecord>;
+
+  findByHash(tokenHash: string): Promise<RefreshTokenRecord | null>;
+
+  /** Marks a single token as used. */
+  revoke(id: string): Promise<void>;
+
+  /** Revokes every token issued from the same login. */
+  revokeFamily(familyId: string): Promise<void>;
+
+  /** Revokes every session a user has. */
+  revokeAllForUser(userId: string): Promise<void>;
+}

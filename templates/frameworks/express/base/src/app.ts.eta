@@ -1,0 +1,54 @@
+import cors from 'cors';
+import express, { type Express } from 'express';
+import helmet from 'helmet';
+import { pinoHttp } from 'pino-http';
+import type { Container } from './container.js';
+import { errorHandler, notFoundHandler } from './shared/http/error-handler.js';
+import { healthRoutes } from './modules/health/health.routes.js';
+<% if (it.hasAuth) { -%>
+import { authRoutes } from './modules/auth/auth.routes.js';
+<% } -%>
+
+/**
+ * Builds the application from an already-wired container.
+ *
+ * Kept separate from `main.ts` so tests can construct an app with test doubles
+ * and drive it over HTTP without opening a port or reading the environment.
+ */
+export function createApp(container: Container): Express {
+  const app = express();
+
+  // Do not advertise the framework in every response.
+  app.disable('x-powered-by');
+
+  app.use(helmet());
+  app.use(
+    cors({
+      origin:
+        container.env.CORS_ORIGIN === '*'
+          ? true
+          : container.env.CORS_ORIGIN.split(',').map((value) => value.trim()),
+      credentials: true,
+    }),
+  );
+
+  // A body limit is a denial-of-service control, not a preference.
+  app.use(express.json({ limit: '100kb' }));
+  app.use(pinoHttp({ logger: container.logger }));
+
+<% if (it.hasDatabase) { -%>
+  app.use('/health', healthRoutes(container.prisma));
+<% } else { -%>
+  app.use('/health', healthRoutes());
+<% } -%>
+<% if (it.hasAuth) { -%>
+  app.use('/auth', authRoutes(container));
+<% } -%>
+
+  // Order matters: the catch-all 404 comes after every route, and the error
+  // handler must be registered last of all.
+  app.use(notFoundHandler());
+  app.use(errorHandler(container.logger));
+
+  return app;
+}

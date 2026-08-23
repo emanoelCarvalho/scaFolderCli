@@ -1,0 +1,102 @@
+# <%= it.projectName %>
+
+Express REST API<% if (it.hasDatabase) { %> backed by <%= it.config.database %> through <%= it.config.orm %><% } %>.
+
+Generated with [scafoldercli](https://www.npmjs.com/package/scafoldercli). This
+project is yours: nothing depends on the generator at runtime.
+
+## Requirements
+
+- Node.js <%= it.nodeVersion %> or newer
+<% if (it.hasDocker) { -%>
+- Docker (optional, for the database and for running the app in a container)
+<% } -%>
+
+## Getting started
+
+```bash
+cp .env.example .env
+<% if (it.hasDocker && it.hasDatabase) { -%>
+docker compose up -d <%= it.config.database %>
+<% } -%>
+<%= it.config.packageManager %> install
+<% if (it.isPrisma) { -%>
+<%= it.config.packageManager %> run db:migrate
+<% } -%>
+<%= it.config.packageManager %> run dev
+```
+
+The API listens on <http://localhost:<%= it.port %>>.
+
+Configuration comes from the environment. `dev` and `start` read `.env` through
+Node's built-in `--env-file-if-exists`, so no dotenv dependency ships at
+runtime and the app also starts cleanly in a container that has no `.env` at
+all.
+
+## Scripts
+
+| Script | What it does |
+| --- | --- |
+| `dev` | Run with hot reload, loading `.env` if present |
+| `start` | Run the compiled build, loading `.env` if present |
+| `build` | Compile to `dist/` |
+| `lint` | Lint |
+| `format` | Format with Prettier |
+| `typecheck` | Type-check without emitting |
+<% if (it.hasTests) { -%>
+| `test` | Run the test suite |
+| `test:watch` | Run tests in watch mode |
+| `test:cov` | Run tests with coverage |
+<% } -%>
+<% if (it.isPrisma) { -%>
+| `db:migrate` | Create and apply a migration (development) |
+| `db:deploy` | Apply pending migrations (production) |
+| `db:generate` | Regenerate the Prisma client |
+| `db:studio` | Browse the database |
+<% } -%>
+
+## Health
+
+| Endpoint | Meaning |
+| --- | --- |
+| `GET /health/live` | The process is running. Use for liveness probes. |
+| `GET /health/ready` | The process can serve traffic<% if (it.hasDatabase) { %>, including database access<% } %>. Use for readiness probes. |
+<% if (it.hasAuth) { -%>
+
+## Authentication
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /auth/register` | Create an account |
+| `POST /auth/login` | Exchange credentials for tokens |
+| `POST /auth/refresh` | Rotate a refresh token |
+| `POST /auth/logout` | Revoke the current session |
+| `POST /auth/logout-all` | Revoke every session for the user |
+| `GET /auth/me` | The authenticated user |
+
+Access tokens are short-lived. Refresh tokens are stored hashed, rotated on
+every use, and revocable. Reusing a rotated refresh token revokes the entire
+session family — the standard response to a suspected token theft.
+<% } -%>
+<% if (it.hasDocker) { -%>
+
+## Docker
+
+```bash
+docker compose up --build
+```
+
+The image is multi-stage, runs as a non-root user, and takes all configuration
+from the environment. Nothing in the build depends on paths from the machine
+that generated it.
+<% } -%>
+
+## Documentation
+
+<% if (it.config.aiDocumentation) { -%>
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — structure, layers and dependency rules
+- [`CONVENTIONS.md`](CONVENTIONS.md) — how code in this repository is written
+- [`AGENTS.md`](AGENTS.md) — operational rules for coding agents
+<% } else { -%>
+Run `scafoldercli create --ai-docs` to generate architecture documentation.
+<% } -%>

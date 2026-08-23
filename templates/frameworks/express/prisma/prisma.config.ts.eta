@@ -3,7 +3,7 @@ import { defineConfig } from 'prisma/config';
 
 // Prisma 7 reads the migration connection string from here rather than from the
 // schema. The application itself connects through a driver adapter; see
-// src/database/prisma.service.ts.
+// src/database/prisma.ts.
 //
 // A missing DATABASE_URL is deliberately not an error here: `prisma generate`
 // never opens a connection, and it has to work inside a Docker build where no
