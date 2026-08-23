@@ -1,0 +1,9 @@
+/** A stored refresh token. The token itself is never persisted, only its hash. */
+export interface RefreshTokenRecord {
+  id: string;
+  tokenHash: string;
+  familyId: string;
+  userId: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+}

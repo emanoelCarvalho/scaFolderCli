@@ -1,0 +1,41 @@
+import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
+import type { Request } from 'express';
+import { UnauthorizedError } from '../../shared/errors/domain-error';
+import type { AuthUser } from './auth-user';
+import { TokensService } from './tokens.service';
+
+/**
+ * Verifies the bearer access token and attaches the caller to the request.
+ *
+ * Written directly against `@nestjs/jwt` rather than through Passport: the
+ * whole behaviour is visible here, and there is no strategy indirection to
+ * follow when something goes wrong.
+ */
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  constructor(private readonly tokens: TokensService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
+    const token = extractBearerToken(request.headers.authorization);
+
+    if (!token) throw new UnauthorizedError('Missing bearer token');
+
+    try {
+      const payload = await this.tokens.verifyAccessToken(token);
+      const user: AuthUser = { id: payload.sub, email: payload.email };
+      request.user = user;
+      return true;
+    } catch {
+      // Expired, malformed and wrongly-signed tokens are all the same to the
+      // caller: the reason would only help someone probing the endpoint.
+      throw new UnauthorizedError('Invalid or expired access token');
+    }
+  }
+}
+
+function extractBearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const [scheme, value] = header.split(' ');
+  return scheme?.toLowerCase() === 'bearer' && value ? value : null;
+}

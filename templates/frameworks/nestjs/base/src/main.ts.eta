@@ -1,0 +1,56 @@
+import { ConsoleLogger, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
+import { AppModule } from './app.module';
+import { type Env, NodeEnv } from './config/env';
+import { DomainExceptionFilter } from './shared/http/domain-exception.filter';
+
+async function bootstrap(): Promise<void> {
+  // Logs emitted during startup are buffered until the configured logger is in
+  // place, so nothing is lost and nothing is printed with the wrong format.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const config = app.get(ConfigService<Env, true>);
+
+  const nodeEnv = config.get('NODE_ENV', { infer: true });
+  const isProduction = nodeEnv === NodeEnv.Production;
+
+  app.useLogger(
+    new ConsoleLogger({
+      // Structured output in production so log aggregators can parse it.
+      json: isProduction,
+      colors: !isProduction,
+    }),
+  );
+
+  app.use(helmet());
+
+  const corsOrigin = config.get('CORS_ORIGIN', { infer: true });
+  app.enableCors({
+    origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((value) => value.trim()),
+    credentials: true,
+  });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      // Strip unknown properties and reject them outright: a client sending
+      // fields we do not model is a bug or an attack, never something to ignore.
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+
+  app.useGlobalFilters(new DomainExceptionFilter());
+
+  // Lets Nest run onModuleDestroy/onApplicationShutdown on SIGTERM, so
+  // in-flight requests finish and connections close before the process exits.
+  app.enableShutdownHooks();
+
+  const port = config.get('PORT', { infer: true });
+  // 0.0.0.0, not localhost: inside a container nothing else is reachable.
+  await app.listen(port, '0.0.0.0');
+}
+
+void bootstrap();

@@ -1,0 +1,11 @@
+/** The authenticated caller, as attached to the request by JwtAuthGuard. */
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
+declare module 'express' {
+  interface Request {
+    user?: AuthUser;
+  }
+}

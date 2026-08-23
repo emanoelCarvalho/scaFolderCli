@@ -1,0 +1,17 @@
+import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+
+export class RegisterDto {
+  @IsEmail({}, { message: 'A valid email address is required' })
+  @MaxLength(254)
+  email!: string;
+
+  /**
+   * Minimum 12 characters: length is the only password rule that reliably
+   * increases strength. The maximum exists so that an enormous input cannot be
+   * used to make the server spend seconds hashing it.
+   */
+  @IsString()
+  @MinLength(12, { message: 'Password must be at least 12 characters' })
+  @MaxLength(128)
+  password!: string;
+}

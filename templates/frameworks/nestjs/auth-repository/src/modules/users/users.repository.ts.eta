@@ -1,0 +1,18 @@
+import type { User } from './user';
+
+/**
+ * What the users module needs from storage, expressed without reference to any
+ * ORM. Swapping <%= it.config.orm %> means writing another implementation of
+ * this interface and rebinding it in `users.module.ts`.
+ */
+export interface UsersRepository {
+  findById(id: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  create(data: { email: string; passwordHash: string }): Promise<User>;
+}
+
+/**
+ * Injection token. An interface does not exist at runtime, so Nest needs a
+ * concrete symbol to resolve the dependency.
+ */
+export const USERS_REPOSITORY = Symbol('UsersRepository');

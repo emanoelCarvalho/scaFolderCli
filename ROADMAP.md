@@ -30,15 +30,22 @@ NestJS → REST API → PostgreSQL → Prisma → JWT → repository pattern
        → tests → Docker → AI documentation → validated generated project
 ```
 
-- [ ] Delegate initialisation to `@nestjs/cli`
-- [ ] Modular / layered / clean architecture layouts
-- [ ] Environment validation, structured logging, health check, graceful shutdown
-- [ ] Prisma integration and migrations
-- [ ] Repository pattern behind interfaces
-- [ ] JWT auth: register, login, refresh (rotating), revoke, logout
-- [ ] Vitest and Jest layers
-- [ ] Dockerfile, compose, `.dockerignore`
-- [ ] Golden project + smoke test: install → lint → test → build → docker build
+- [x] Delegate initialisation to `@nestjs/cli`
+- [x] Modular architecture layout
+- [x] Environment validation, structured logging, health checks, graceful shutdown
+- [x] Prisma 7 integration with driver adapters and migrations
+- [x] Repository pattern behind interfaces, and a coherent layout without it
+- [x] JWT auth: register, login, refresh (rotating), revoke, logout, logout-all
+- [x] Vitest layer with SWC, plus runner-agnostic specs that also run under Jest
+- [x] Dockerfile, compose file, `.dockerignore`
+- [x] Golden project smoke test: install → prisma generate → lint → test → build
+- [ ] Golden project smoke test: docker build _(needs a running Docker daemon)_
+- [ ] Layered and clean architecture layouts
+- [ ] MySQL, SQLite and MongoDB
+- [ ] TypeORM, Sequelize and Mongoose
+
+The matrix only offers what the generator actually produces, so the unchecked
+items above are not selectable yet.
 
 ## Phase 3 — Express
 

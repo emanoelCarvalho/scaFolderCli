@@ -49,7 +49,8 @@
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
     "prepack": "npm run clean && npm run build",
     "test:all": "vitest run",
-    "verify:full": "npm run verify && npm run test:integration"
+    "verify:full": "npm run verify && npm run test:integration",
+    "test:golden": "vitest run tests/integration/nestjs-golden.test.ts"
   },
   "publishConfig": {
     "access": "public"

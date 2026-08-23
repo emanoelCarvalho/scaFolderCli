@@ -1,0 +1,41 @@
+<% if (it.hasRepository) { -%>
+import { Inject, Injectable } from '@nestjs/common';
+<% } else { -%>
+import { Injectable } from '@nestjs/common';
+<% } -%>
+import { ConflictError, NotFoundError } from '../../shared/errors/domain-error';
+import type { User } from './user';
+<% if (it.hasRepository) { -%>
+import { USERS_REPOSITORY, type UsersRepository } from './users.repository';
+<% } else { -%>
+import { PrismaUsersRepository } from './infrastructure/prisma-users.repository';
+<% } -%>
+
+@Injectable()
+export class UsersService {
+<% if (it.hasRepository) { -%>
+  constructor(@Inject(USERS_REPOSITORY) private readonly users: UsersRepository) {}
+<% } else { -%>
+  constructor(private readonly users: PrismaUsersRepository) {}
+<% } -%>
+
+  async getById(id: string): Promise<User> {
+    const user = await this.users.findById(id);
+    if (!user) throw new NotFoundError('User not found');
+    return user;
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.users.findByEmail(email);
+  }
+
+  /**
+   * Rejects a duplicate email up front. The unique index is still the real
+   * guarantee; this check exists to return a clear 409 instead of a 500.
+   */
+  async create(email: string, passwordHash: string): Promise<User> {
+    const existing = await this.users.findByEmail(email);
+    if (existing) throw new ConflictError('Email already registered');
+    return this.users.create({ email, passwordHash });
+  }
+}

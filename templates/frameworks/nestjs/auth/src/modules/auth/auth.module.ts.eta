@@ -1,0 +1,31 @@
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { DatabaseModule } from '../../database/database.module';
+import { UsersModule } from '../users/users.module';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { PrismaRefreshTokenRepository } from './infrastructure/prisma-refresh-token.repository';
+import { JwtAuthGuard } from './jwt-auth.guard';
+<% if (it.hasRepository) { -%>
+import { REFRESH_TOKEN_REPOSITORY } from './refresh-token.repository';
+<% } -%>
+import { TokensService } from './tokens.service';
+
+@Module({
+  // Secrets are passed per-call in TokensService, so the module needs no
+  // registration options and cannot accidentally cache a stale secret.
+  imports: [JwtModule.register({}), DatabaseModule, UsersModule],
+  controllers: [AuthController],
+  providers: [
+<% if (it.hasRepository) { -%>
+    { provide: REFRESH_TOKEN_REPOSITORY, useClass: PrismaRefreshTokenRepository },
+<% } else { -%>
+    PrismaRefreshTokenRepository,
+<% } -%>
+    TokensService,
+    AuthService,
+    JwtAuthGuard,
+  ],
+  exports: [JwtAuthGuard, TokensService],
+})
+export class AuthModule {}

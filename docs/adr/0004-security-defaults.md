@@ -20,7 +20,11 @@ is valid until it expires.
 - Passwords are hashed with Argon2id.
 - Secrets come from validated environment variables. The process refuses to
   start when one is missing.
-- Templates ship `.env.example` only. No template ever contains a real secret.
+- Templates ship `.env.example` with placeholders only. No template ever
+  contains a real secret.
+- Generation writes a gitignored `.env` whose secrets are randomly generated per
+  project. Copying the example verbatim would be worse than nothing: every
+  generated project would start with the same key, published in this repository.
 
 ## Consequences
 

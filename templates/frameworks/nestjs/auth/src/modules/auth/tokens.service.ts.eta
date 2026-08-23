@@ -1,0 +1,59 @@
+import { randomBytes, createHash } from 'node:crypto';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import type { Env } from '../../config/env';
+
+export interface AccessTokenPayload {
+  /** Subject: the user id. */
+  sub: string;
+  email: string;
+}
+
+/**
+ * Issues and verifies credentials.
+ *
+ * Access tokens are signed JWTs and are never stored. Refresh tokens are
+ * opaque random strings: they carry no claims, so they cannot be trusted on
+ * their own and must be looked up server-side, which is what makes revocation
+ * possible.
+ */
+@Injectable()
+export class TokensService {
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly config: ConfigService<Env, true>,
+  ) {}
+
+  async issueAccessToken(payload: AccessTokenPayload): Promise<string> {
+    return this.jwt.signAsync(payload, {
+      secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+      expiresIn: this.config.get('JWT_ACCESS_TTL', { infer: true }),
+    });
+  }
+
+  async verifyAccessToken(token: string): Promise<AccessTokenPayload> {
+    return this.jwt.verifyAsync<AccessTokenPayload>(token, {
+      secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+    });
+  }
+
+  /** 256 bits of entropy, URL-safe so it survives headers and JSON unharmed. */
+  generateRefreshToken(): string {
+    return randomBytes(32).toString('base64url');
+  }
+
+  /**
+   * SHA-256 is correct here, unlike for passwords: the input already has 256
+   * bits of entropy, so there is nothing to brute-force and no reason to pay
+   * the cost of a slow KDF on every refresh.
+   */
+  hashRefreshToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  refreshTokenExpiry(from: Date = new Date()): Date {
+    const days = this.config.get('JWT_REFRESH_TTL_DAYS', { infer: true });
+    return new Date(from.getTime() + days * 24 * 60 * 60 * 1000);
+  }
+}

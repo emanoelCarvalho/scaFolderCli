@@ -1,0 +1,41 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+<% if (it.hasAuth) { -%>
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+<% } -%>
+import { validateEnv } from './config/env';
+<% if (it.hasDatabase) { -%>
+import { DatabaseModule } from './database/database.module';
+<% } -%>
+import { HealthModule } from './modules/health/health.module';
+<% if (it.hasAuth) { -%>
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+<% } -%>
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      validate: validateEnv,
+    }),
+<% if (it.hasAuth) { -%>
+    // Applied globally below; individual routes tighten it with @Throttle().
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+<% } -%>
+<% if (it.hasDatabase) { -%>
+    DatabaseModule,
+<% } -%>
+    HealthModule,
+<% if (it.hasAuth) { -%>
+    UsersModule,
+    AuthModule,
+<% } -%>
+  ],
+<% if (it.hasAuth) { -%>
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+<% } -%>
+})
+export class AppModule {}

@@ -1,0 +1,57 @@
+<% if (it.hasDatabase) { -%>
+import { ServiceUnavailableException } from '@nestjs/common';
+import type { PrismaService } from '../../database/prisma.service';
+<% } -%>
+import { HealthController } from './health.controller';
+<% if (it.hasDatabase) { -%>
+
+/** Minimal stand-in for Prisma: only `$queryRaw` is exercised by readiness. */
+function fakePrisma(behaviour: 'up' | 'down'): PrismaService {
+  return {
+    $queryRaw: () => {
+      if (behaviour === 'down') return Promise.reject(new Error('connection refused'));
+      return Promise.resolve([{ '?column?': 1 }]);
+    },
+  } as unknown as PrismaService;
+}
+<% } -%>
+
+describe('HealthController', () => {
+  it('reports liveness with an uptime', () => {
+<% if (it.hasDatabase) { -%>
+    const controller = new HealthController(fakePrisma('up'));
+<% } else { -%>
+    const controller = new HealthController();
+<% } -%>
+    const result = controller.live();
+
+    expect(result.status).toBe('ok');
+    expect(result.uptimeSeconds).toBeGreaterThanOrEqual(0);
+  });
+<% if (it.hasDatabase) { -%>
+
+  it('reports readiness when the database answers', async () => {
+    const controller = new HealthController(fakePrisma('up'));
+    await expect(controller.ready()).resolves.toEqual({ status: 'ok', database: 'up' });
+  });
+
+  it('fails readiness when the database is unreachable', async () => {
+    const controller = new HealthController(fakePrisma('down'));
+    await expect(controller.ready()).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('does not leak the database error to the caller', async () => {
+    const controller = new HealthController(fakePrisma('down'));
+    const error = (await controller.ready().catch((caught: unknown) => caught)) as Error;
+
+    expect(error.message).toContain('Database is not reachable');
+    expect(error.message).not.toContain('connection refused');
+  });
+<% } else { -%>
+
+  it('reports readiness', () => {
+    const controller = new HealthController();
+    expect(controller.ready()).toEqual({ status: 'ok' });
+  });
+<% } -%>
+});

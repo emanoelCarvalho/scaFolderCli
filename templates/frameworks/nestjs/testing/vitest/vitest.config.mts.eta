@@ -1,0 +1,21 @@
+import swc from 'unplugin-swc';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    // `globals: true` keeps spec files free of runner-specific imports, so the
+    // same tests would run under Jest unchanged.
+    globals: true,
+    environment: 'node',
+    include: ['src/**/*.spec.ts'],
+    root: '.',
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.spec.ts', 'src/main.ts'],
+    },
+  },
+  // NestJS dependency injection reads `design:paramtypes`, which esbuild does
+  // not emit. SWC does, so the container resolves constructors under Vitest.
+  plugins: [swc.vite({ module: { type: 'es6' } })],
+});

@@ -1,0 +1,56 @@
+# syntax=docker/dockerfile:1
+
+# Multi-stage build: the final image contains the compiled output and runtime
+# dependencies only — no source, no toolchain, no dev dependencies.
+# Nothing here depends on the machine that generated the project.
+
+FROM node:<%= it.nodeVersion %>-alpine AS deps
+WORKDIR /app
+COPY package.json <%= it.lockfile %>* ./
+RUN <%= it.ciInstall %>
+
+FROM node:<%= it.nodeVersion %>-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+<% if (it.isPrisma) { -%>
+RUN npx prisma generate
+<% } -%>
+RUN <%= it.buildCommand %>
+
+FROM node:<%= it.nodeVersion %>-alpine AS prod-deps
+WORKDIR /app
+COPY package.json <%= it.lockfile %>* ./
+RUN <%= it.prodInstall %>
+<% if (it.isPrisma) { -%>
+# The Prisma client is generated, not published, so it has to come from the
+# build stage rather than from a fresh install.
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
+<% } -%>
+
+FROM node:<%= it.nodeVersion %>-alpine AS runtime
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=<%= it.port %>
+
+# `node` exists in the base image with uid 1000. Running as a non-root user is
+# a default, not a hardening step to remember later.
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
+COPY --chown=node:node package.json ./
+<% if (it.isPrisma) { -%>
+COPY --chown=node:node prisma ./prisma
+<% } -%>
+
+USER node
+EXPOSE <%= it.port %>
+
+# Uses the app's own readiness endpoint, so the container is reported unhealthy
+# for the same reasons an orchestrator would stop routing traffic to it.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||<%= it.port %>)+'/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+# Exec form: the process receives SIGTERM directly, so Nest's shutdown hooks run.
+CMD ["node", "dist/main.js"]

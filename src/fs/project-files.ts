@@ -87,6 +87,15 @@ export class ProjectFiles {
       .sort();
   }
 
+  /** Relative path -> content for every buffered write, for tests and dry runs. */
+  plannedContents(): Map<string, string> {
+    const contents = new Map<string, string>();
+    for (const [key, operation] of this.operations) {
+      if (operation.kind === 'write') contents.set(key, operation.content);
+    }
+    return contents;
+  }
+
   plannedDeletions(): string[] {
     return [...this.operations.entries()]
       .filter(([, op]) => op.kind === 'delete')

@@ -63,7 +63,12 @@ describe('matrix consistency', () => {
 
 describe('option narrowing', () => {
   it('offers only ORMs valid for both the database and the framework', () => {
-    expect(availableOrms('nestjs', 'mongodb').map((o) => o.value)).toEqual(['prisma', 'mongoose']);
+    expect(availableOrms('express', 'mongodb').map((o) => o.value)).toEqual(['prisma', 'mongoose']);
+  });
+
+  it('offers only what the implemented NestJS generator actually produces', () => {
+    expect(availableDatabases('nestjs').map((d) => d.value)).toEqual(['postgresql', 'none']);
+    expect(availableOrms('nestjs', 'postgresql').map((o) => o.value)).toEqual(['prisma']);
   });
 
   it('hides JWT for an API without a database', () => {
@@ -91,7 +96,10 @@ describe('findIncompatibilities', () => {
   });
 
   it('rejects mongoose with postgresql', () => {
-    expect(findIncompatibilities({ ...base, orm: 'mongoose' })).toHaveLength(1);
+    // express declares mongoose support, so only the database rule can fire.
+    const problems = findIncompatibilities({ ...base, framework: 'express', orm: 'mongoose' });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('mongoose');
   });
 
   it('rejects JWT for an API with no database', () => {

@@ -1,0 +1,12 @@
+import { Module } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+
+/**
+ * Deliberately not `@Global()`: a module that reaches the database must say so
+ * by importing this module, which keeps the dependency graph readable.
+ */
+@Module({
+  providers: [PrismaService],
+  exports: [PrismaService],
+})
+export class DatabaseModule {}

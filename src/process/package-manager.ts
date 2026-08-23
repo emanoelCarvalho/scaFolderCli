@@ -24,6 +24,8 @@ interface Spec {
   install: readonly string[];
   /** Reproducible install from the lockfile, used inside Docker builds. */
   ci: readonly string[];
+  /** Reproducible install of runtime dependencies only, for the final image. */
+  prod: readonly string[];
   run: (script: string) => readonly string[];
   dlx: (pkg: string) => readonly string[];
 }
@@ -34,6 +36,7 @@ const SPECS: Record<PackageManager, Spec> = {
     lockfile: 'package-lock.json',
     install: ['install'],
     ci: ['ci'],
+    prod: ['ci', '--omit=dev'],
     run: (script) => ['run', script],
     dlx: (pkg) => ['--yes', pkg],
   },
@@ -42,6 +45,7 @@ const SPECS: Record<PackageManager, Spec> = {
     lockfile: 'pnpm-lock.yaml',
     install: ['install'],
     ci: ['install', '--frozen-lockfile'],
+    prod: ['install', '--frozen-lockfile', '--prod'],
     run: (script) => ['run', script],
     dlx: (pkg) => ['dlx', pkg],
   },
@@ -50,6 +54,10 @@ const SPECS: Record<PackageManager, Spec> = {
     lockfile: 'yarn.lock',
     install: ['install'],
     ci: ['install', '--immutable'],
+    // Yarn Berry can only prune dev dependencies through the workspace-tools
+    // plugin, which is not installed by default. Installing everything is
+    // slightly larger but always works.
+    prod: ['install', '--immutable'],
     run: (script) => ['run', script],
     dlx: (pkg) => ['dlx', pkg],
   },
@@ -83,9 +91,19 @@ export function createPackageManager(
   };
 }
 
-/** Command list used by generated Dockerfiles for a reproducible install. */
+/** Command used by generated Dockerfiles for a reproducible install. */
 export function ciInstallCommand(name: PackageManager): string {
   return [SPECS[name].bin, ...SPECS[name].ci].join(' ');
+}
+
+/** Command used by the final Docker stage to install runtime dependencies. */
+export function prodInstallCommand(name: PackageManager): string {
+  return [SPECS[name].bin, ...SPECS[name].prod].join(' ');
+}
+
+/** Lockfile name, so a Dockerfile can copy it before the rest of the sources. */
+export function lockfileName(name: PackageManager): string {
+  return SPECS[name].lockfile;
 }
 
 /** Detects the package manager that invoked the CLI, for a sensible default. */

@@ -43,13 +43,16 @@ export interface FrameworkCapability {
  * See docs/adr/0005-frontend-scope.md.
  */
 export const FRAMEWORK_CAPABILITIES: Readonly<Record<Framework, FrameworkCapability>> = {
+  // Implemented. This row states exactly what the generator produces today;
+  // every entry is covered by a golden-project smoke test. Widening it without
+  // widening the generator would offer combinations we cannot deliver.
   nestjs: {
     label: 'NestJS',
     hint: 'Opinionated Node.js framework, module-first, built on its own CLI',
     projectTypes: ['api'],
-    architectures: ['modular', 'layered', 'clean'],
-    databases: ['postgresql', 'mysql', 'mongodb', 'sqlite', 'none'],
-    orms: ['prisma', 'typeorm', 'sequelize', 'mongoose', 'none'],
+    architectures: ['modular'],
+    databases: ['postgresql', 'none'],
+    orms: ['prisma', 'none'],
     authentication: ['jwt', 'none'],
     testing: ['vitest', 'jest', 'none'],
     repositoryPattern: true,
@@ -66,6 +69,8 @@ export const FRAMEWORK_CAPABILITIES: Readonly<Record<Framework, FrameworkCapabil
       aiDocumentation: true,
     },
   },
+  // Planned. Rows for unimplemented frameworks describe the intended scope;
+  // nothing is offered to users until a generator is registered.
   express: {
     label: 'Express',
     hint: 'Minimal HTTP framework, structure supplied by scafoldercli',

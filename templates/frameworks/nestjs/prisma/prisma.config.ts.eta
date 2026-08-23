@@ -1,0 +1,19 @@
+import 'dotenv/config';
+import { defineConfig } from 'prisma/config';
+
+// Prisma 7 reads the migration connection string from here rather than from the
+// schema. The application itself connects through a driver adapter; see
+// src/database/prisma.service.ts.
+const url = process.env['DATABASE_URL'];
+
+if (!url) {
+  throw new Error(
+    'DATABASE_URL is required to run Prisma CLI commands. Copy .env.example to .env.',
+  );
+}
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: { path: 'prisma/migrations' },
+  datasource: { url },
+});

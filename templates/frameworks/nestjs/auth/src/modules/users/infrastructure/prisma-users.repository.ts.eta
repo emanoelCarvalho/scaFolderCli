@@ -1,0 +1,29 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../../database/prisma.service';
+import type { User } from '../user';
+<% if (it.hasRepository) { -%>
+import type { UsersRepository } from '../users.repository';
+<% } -%>
+
+/**
+ * The only place in the users module that knows about Prisma.
+<% if (it.hasRepository) { -%>
+ * Everything above it depends on `UsersRepository`, never on this class.
+<% } -%>
+ */
+@Injectable()
+export class PrismaUsersRepository<% if (it.hasRepository) { %> implements UsersRepository<% } %> {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findById(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  async create(data: { email: string; passwordHash: string }): Promise<User> {
+    return this.prisma.user.create({ data });
+  }
+}

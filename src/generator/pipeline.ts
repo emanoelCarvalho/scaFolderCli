@@ -6,6 +6,7 @@ import {
   type ProjectConfig,
 } from '../config/schema.js';
 import { writeAiDocumentation } from '../docs/ai-docs.js';
+import { writeLocalEnvFile } from './env-file.js';
 import { isDirectoryEmpty, ensureDir, pathExists, removeDir } from '../fs/files.js';
 import { ProjectFiles } from '../fs/project-files.js';
 import { runCommand } from '../process/exec.js';
@@ -22,6 +23,8 @@ export interface GenerationResult {
   dryRun: boolean;
   /** Paths written by scafoldercli, relative to the project root. */
   writtenFiles: string[];
+  /** The same files with their contents, so a run can be inspected in memory. */
+  renderedFiles: ReadonlyMap<string, string>;
   /** Ordered, human-readable description of what ran (or would run). */
   steps: string[];
   nextSteps: string[];
@@ -75,16 +78,25 @@ export async function generateProject(
 
     await generator.generate(context);
 
+    // A generated project must be runnable straight away, which means the
+    // environment file has to exist before any post-install tooling reads it.
+    const envExample = await files.read('.env.example');
+    if (envExample !== null && !(await files.exists('.env'))) {
+      writeLocalEnvFile(files, envExample);
+      steps.push('Write a local .env with generated secrets');
+    }
+
     if (config.aiDocumentation) {
       await writeAiDocumentation(context, generator.documentation(context));
       steps.push('Write ARCHITECTURE.md, CONVENTIONS.md and AGENTS.md');
     }
 
     const writtenFiles = files.plannedWrites();
+    const renderedFiles = files.plannedContents();
     await files.flush();
 
     if (request.dryRun) {
-      return { config, targetDir, dryRun: true, writtenFiles, steps, nextSteps: [] };
+      return { config, targetDir, dryRun: true, writtenFiles, renderedFiles, steps, nextSteps: [] };
     }
 
     if (request.install) {
@@ -105,6 +117,7 @@ export async function generateProject(
       targetDir,
       dryRun: false,
       writtenFiles,
+      renderedFiles,
       steps,
       nextSteps: generator.nextSteps?.(context) ?? [],
     };

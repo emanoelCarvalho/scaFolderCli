@@ -1,0 +1,28 @@
+import { Controller, Get } from '@nestjs/common';
+
+interface LivenessResponse {
+  status: 'ok';
+  uptimeSeconds: number;
+}
+
+interface ReadinessResponse {
+  status: 'ok';
+}
+
+/**
+ * Liveness answers "is the process alive"; readiness answers "can it serve
+ * traffic". Orchestrators need both, and they must mean different things —
+ * a single endpoint used for both causes healthy pods to be restarted.
+ */
+@Controller('health')
+export class HealthController {
+  @Get('live')
+  live(): LivenessResponse {
+    return { status: 'ok', uptimeSeconds: Math.round(process.uptime()) };
+  }
+
+  @Get('ready')
+  ready(): ReadinessResponse {
+    return { status: 'ok' };
+  }
+}

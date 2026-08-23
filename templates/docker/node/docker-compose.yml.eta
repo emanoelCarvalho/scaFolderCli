@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: .
+    environment:
+      NODE_ENV: production
+      PORT: <%= it.port %>
+<% if (it.config.database === 'postgresql') { -%>
+      DATABASE_URL: postgresql://<%= it.dirName %>:<%= it.dirName %>@postgresql:<%= it.databasePort %>/<%= it.dirName %>?schema=public
+<% } -%>
+<% if (it.hasAuth) { -%>
+      # Override this in any environment that is not a local experiment.
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in your shell or .env}
+<% } -%>
+    ports:
+      - '<%= it.port %>:<%= it.port %>'
+<% if (it.hasDatabase) { -%>
+    depends_on:
+      <%= it.config.database %>:
+        condition: service_healthy
+<% } -%>
+    restart: unless-stopped
+<% if (it.config.database === 'postgresql') { -%>
+
+  postgresql:
+    image: <%= it.databaseImage %>
+    environment:
+      POSTGRES_USER: <%= it.dirName %>
+      POSTGRES_PASSWORD: <%= it.dirName %>
+      POSTGRES_DB: <%= it.dirName %>
+    ports:
+      - '<%= it.databasePort %>:<%= it.databasePort %>'
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      # The app waits for this, so `docker compose up` works on a cold start.
+      test: ['CMD-SHELL', 'pg_isready -U <%= it.dirName %> -d <%= it.dirName %>']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgresql-data:
+<% } -%>

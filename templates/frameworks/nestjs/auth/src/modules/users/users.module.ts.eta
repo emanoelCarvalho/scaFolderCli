@@ -1,0 +1,22 @@
+import { Module } from '@nestjs/common';
+import { DatabaseModule } from '../../database/database.module';
+import { PrismaUsersRepository } from './infrastructure/prisma-users.repository';
+<% if (it.hasRepository) { -%>
+import { USERS_REPOSITORY } from './users.repository';
+<% } -%>
+import { UsersService } from './users.service';
+
+@Module({
+  imports: [DatabaseModule],
+  providers: [
+<% if (it.hasRepository) { -%>
+    // The interface is bound to its Prisma implementation here, and only here.
+    { provide: USERS_REPOSITORY, useClass: PrismaUsersRepository },
+<% } else { -%>
+    PrismaUsersRepository,
+<% } -%>
+    UsersService,
+  ],
+  exports: [UsersService],
+})
+export class UsersModule {}

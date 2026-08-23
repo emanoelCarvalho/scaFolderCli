@@ -9,9 +9,10 @@ npx scafoldercli create
 Answer a few questions, get a project that installs, tests, builds, runs in a
 container, and documents itself — for humans and for coding agents.
 
-> **Status: early development.** The core engine is complete and tested. Framework
-> generators are landing one at a time, starting with NestJS. Run
-> `npx scafoldercli list` to see what this build can actually generate.
+> **Status: early development.** The core engine and the NestJS path are
+> complete and tested end to end. Express, Next.js and Svelte are not
+> implemented yet. Run `npx scafoldercli list` to see what this build can
+> actually generate — nothing is offered that it cannot produce.
 
 ## What it generates
 
@@ -140,6 +141,22 @@ Two rules worth knowing:
 
 Run `scafoldercli list` for the full matrix.
 
+### What NestJS produces today
+
+| Choice             | Options            |
+| ------------------ | ------------------ |
+| Project type       | REST API           |
+| Architecture       | Modular            |
+| Database           | PostgreSQL, none   |
+| ORM                | Prisma, none       |
+| Authentication     | JWT, none          |
+| Repository pattern | Yes or no          |
+| Tests              | Vitest, Jest, none |
+| Docker             | Yes or no          |
+
+Layered and clean layouts, other databases and other ORMs are planned; they are
+not offered until the generator can actually produce them.
+
 ## AI documentation
 
 With `--ai-docs` (on by default), every project gets:
@@ -153,6 +170,16 @@ With `--ai-docs` (on by default), every project gets:
 These are rendered from the generator's declared facts about the code it just
 wrote — not from a generic template. If the docs and the code disagree, that is
 a bug.
+
+## Environment files
+
+Generation writes two files:
+
+- **`.env.example`** — committed, with placeholders. It documents every variable
+  the project validates at startup.
+- **`.env`** — gitignored, with every placeholder secret replaced by a freshly
+  generated random value, so the project runs immediately and has never had a
+  key that anyone else knows.
 
 ## Security defaults
 

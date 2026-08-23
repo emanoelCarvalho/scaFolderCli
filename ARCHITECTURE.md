@@ -70,6 +70,7 @@ interactive answers ┘                             (capability matrix narrows
 | `src/fs/`                    | Buffered, escape-proof file writing.                                |
 | `src/process/`               | Cross-platform command execution and package-manager adapters.      |
 | `src/docs/`                  | AI documentation rendered from generator-declared facts.            |
+| `src/generator/frameworks/`  | One directory per framework generator.                              |
 | `src/util/`                  | Errors, logging, project-name rules.                                |
 | `templates/`                 | Template layers, shipped as plain files.                            |
 
@@ -184,3 +185,13 @@ fixed.
 ## Decisions
 
 Architecture decision records live in [`docs/adr/`](docs/adr/).
+
+## Cross-cutting generation steps
+
+Two things every framework needs are applied by the pipeline rather than by each
+generator:
+
+- **AI documentation**, rendered from the facts a generator declares.
+- **The local `.env`**, derived from the `.env.example` a layer produced, with
+  every placeholder secret replaced by a generated value. Copying the example
+  verbatim would give every generated project the same key.

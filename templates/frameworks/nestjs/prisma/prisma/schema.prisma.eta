@@ -1,0 +1,45 @@
+// Prisma schema for <%= it.projectName %>.
+// Apply changes with: <%= it.config.packageManager %> run db:migrate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "<%= it.config.database %>"
+}
+<% if (it.hasAuth) { -%>
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+/// A refresh token is server-side state, not a self-contained credential.
+/// Only its hash is stored, so a database leak does not hand out valid tokens.
+///
+/// Tokens issued from one login share a `familyId`. Rotation replaces a token
+/// within its family; presenting an already-rotated token means the token was
+/// stolen, and the whole family is revoked.
+model RefreshToken {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  familyId   String
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+<% } -%>
