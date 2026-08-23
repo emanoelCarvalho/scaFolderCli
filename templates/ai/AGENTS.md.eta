@@ -1,0 +1,49 @@
+# Agents
+
+Operational rules for coding agents working in this repository.
+Read `ARCHITECTURE.md` and `CONVENTIONS.md` first — they are the contract.
+
+## Before you change anything
+
+1. Locate the module or layer that owns the behaviour.
+2. Read the existing code in that module; follow its patterns.
+3. Check whether a shared utility already solves the problem.
+
+## Hard rules
+
+- Do not change the architecture. Extend the existing structure.
+- Do not create abstractions with a single implementation.
+- Do not add a dependency without stating why an existing one is insufficient.
+- Do not bypass the dependency rules in `ARCHITECTURE.md`.
+- Do not modify infrastructure files (Dockerfile, compose, CI) unless the task
+  is explicitly about infrastructure.
+- Do not commit secrets. Configuration belongs in environment variables.
+- Do not disable, skip or delete a test to make a build pass.
+<% if (it.hasRepository) { -%>
+- Do not import <%= it.config.orm %> outside the infrastructure layer.
+<% } -%>
+
+## When adding a feature
+
+<% it.facts.addFeatureSteps.forEach(function (step, index) { -%>
+<%= index + 1 %>. <%= step %>
+<% }) -%>
+
+## Commands
+
+<% it.facts.commands.forEach(function (command) { -%>
+- <%= command.label %>: `<%= command.command %>`
+<% }) -%>
+
+## Definition of done
+
+A change is complete when it is implemented, tested, documented where behaviour
+changed, and the full verification command passes.
+<% if (it.facts.agentRules.length > 0) { -%>
+
+## Project-specific rules
+
+<% it.facts.agentRules.forEach(function (rule) { -%>
+- <%= rule %>
+<% }) -%>
+<% } -%>
