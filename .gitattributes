@@ -1,0 +1,19 @@
+# Windows checks out CRLF by default, and this project's Prettier config
+# requires LF. Without this file `npm run format:check` fails on every file on a
+# Windows runner while passing everywhere else.
+* text=auto eol=lf
+
+# Templates are rendered verbatim into generated projects; their line endings
+# must survive the round trip unchanged.
+*.eta text eol=lf
+
+# Files git must never rewrite.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.tgz binary

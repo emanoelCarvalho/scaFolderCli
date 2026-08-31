@@ -1,0 +1,14 @@
+# Windows checks out CRLF by default, which would make this project's own
+# `format:check` fail there while passing everywhere else. Normalising to LF
+# keeps the repository identical on macOS, Linux, Windows and in CI.
+* text=auto eol=lf
+
+# Files git must never rewrite.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
