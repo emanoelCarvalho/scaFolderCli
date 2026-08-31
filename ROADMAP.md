@@ -111,20 +111,30 @@ Same specification as Phase 4, expressed the way SvelteKit does it.
 - [ ] Component tests (they run through Playwright, which downloads a browser)
 - [ ] Layered architecture layout
 
-## Phase 6 — Hardening
+## Phase 6 — Hardening ✅
 
-- [ ] Full compatibility-matrix coverage
-- [ ] Docker build tests for every framework
-- [ ] Security review of every generated template
-- [ ] `npm pack` + install-from-tarball test
-- [ ] Cross-platform validation (macOS, Linux, Windows) in CI
+- [x] Full compatibility-matrix coverage
+- [x] Docker build tests for every framework
+- [x] Security sweep across every generated template, run on each build
+- [x] `npm pack` + install-from-tarball test, including generating from the
+      installed package
+- [x] Cross-platform CI (Linux, macOS, Windows on Node 22 and 24)
 
 ## Phase 7 — Release
 
-- [ ] Semantic versioning and changelog
-- [ ] Release pipeline
-- [ ] Published documentation
-- [ ] npm publication
+- [x] Semantic versioning and a changelog
+- [x] Release pipeline: tag → verify → golden projects → publish with provenance
+- [x] Published documentation (README, ARCHITECTURE, CONVENTIONS, AGENTS, ADRs)
+- [ ] npm publication — the one step that is deliberately manual
+
+Publishing is a one-way door. It runs from a `v*` tag, and only after the full
+suite and all four golden projects pass:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The workflow needs an `NPM_TOKEN` repository secret.
 
 ## Deliberately deferred
 
