@@ -1,0 +1,49 @@
+<% if (it.hasAuth) { -%>
+<script lang="ts">
+	import { resolve } from '$app/paths';
+
+	let { data } = $props();
+</script>
+
+<main class="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 px-6">
+	<div>
+		<h1 class="text-3xl font-semibold"><%= it.projectName %></h1>
+		<p class="mt-2 text-sm opacity-70">
+			A SvelteKit client generated with scafoldercli. Authentication runs through server actions, so
+			no token ever reaches the browser.
+		</p>
+	</div>
+
+	<div class="flex gap-3">
+		{#if data.signedIn}
+			<a
+				href={resolve('/dashboard')}
+				class="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
+			>
+				Go to dashboard
+			</a>
+		{:else}
+			<a
+				href={resolve('/login')}
+				class="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
+			>
+				Sign in
+			</a>
+			<a
+				href={resolve('/register')}
+				class="rounded-md border border-black/15 px-4 py-2 text-sm font-medium dark:border-white/20"
+			>
+				Create an account
+			</a>
+		{/if}
+	</div>
+</main>
+<% } else { -%>
+<main class="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-6">
+	<h1 class="text-3xl font-semibold"><%= it.projectName %></h1>
+	<p class="text-sm opacity-70">
+		A SvelteKit client generated with scafoldercli. Start editing
+		<code class="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">src/routes/+page.svelte</code>.
+	</p>
+</main>
+<% } -%>

@@ -1,0 +1,18 @@
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+
+	interface Props {
+		title?: string;
+		message: string;
+		/** A retry button, a link back, or nothing. */
+		action?: Snippet;
+	}
+
+	let { title = 'Something went wrong', message, action }: Props = $props();
+</script>
+
+<div role="alert" class="flex flex-col items-center gap-3 py-12 text-center">
+	<h2 class="text-lg font-semibold">{title}</h2>
+	<p class="max-w-md text-sm opacity-70">{message}</p>
+	{#if action}{@render action()}{/if}
+</div>

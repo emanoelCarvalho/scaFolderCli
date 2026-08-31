@@ -1,0 +1,17 @@
+<% if (it.hasAuth) { -%>
+import type { Session } from '$lib/server/session';
+
+<% } -%>
+// See https://svelte.dev/docs/kit/types#app.d.ts
+declare global {
+	namespace App {
+<% if (it.hasAuth) { -%>
+		interface Locals {
+			/** Set once per request by `hooks.server.ts`. Null when signed out. */
+			session: Session | null;
+		}
+<% } -%>
+	}
+}
+
+export {};

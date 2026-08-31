@@ -1,0 +1,24 @@
+# Copy to .env and fill in. Never commit .env.
+# Every variable here is validated by src/lib/server/env.ts.
+#
+# All of it is server-side. SvelteKit refuses to bundle $lib/server into client
+# code, so none of this can reach the browser.
+
+# Port this client listens on. Deliberately not 3000: that is where the API
+# runs, and the two are meant to run side by side.
+PORT=<%= it.port %>
+
+# Public origin of this app. SvelteKit's Node adapter rejects form posts whose
+# origin it cannot verify, and a mismatch here is the usual cause of a 403 on
+# submit.
+ORIGIN=http://localhost:<%= it.port %>
+
+# Base URL of the API this client talks to, without a trailing slash.
+# Generate a matching backend with:
+#   npx scafoldercli create my-api --preset nestjs-api
+API_URL=http://localhost:3000
+<% if (it.hasAuth) { -%>
+
+# Name of the httpOnly cookie holding the session.
+SESSION_COOKIE_NAME=<%= it.dirName %>_session
+<% } -%>

@@ -1,0 +1,53 @@
+import type { Cookies } from '@sveltejs/kit';
+import { dev } from '$app/environment';
+import { env } from './env';
+
+export interface Session {
+	accessToken: string;
+	refreshToken: string;
+}
+
+export interface SessionUser {
+	id: string;
+	email: string;
+}
+
+/** Thirty days, matching the refresh-token lifetime the API issues. */
+const MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+
+function refreshCookieName(): string {
+	return `${env().SESSION_COOKIE_NAME}_refresh`;
+}
+
+/**
+ * Tokens live in httpOnly cookies written on the server. Browser code cannot
+ * read them, which is the whole point — see docs/adr/0009-nextjs-auth-bff.md,
+ * whose reasoning applies here unchanged.
+ */
+export function setSession(cookies: Cookies, session: Session): void {
+	const options = {
+		httpOnly: true,
+		secure: !dev,
+		// `lax` still sends the cookie on top-level navigation back into the
+		// app, which is what makes a normal sign-in redirect work.
+		sameSite: 'lax' as const,
+		path: '/',
+		maxAge: MAX_AGE_SECONDS
+	};
+
+	cookies.set(env().SESSION_COOKIE_NAME, session.accessToken, options);
+	cookies.set(refreshCookieName(), session.refreshToken, options);
+}
+
+export function clearSession(cookies: Cookies): void {
+	cookies.delete(env().SESSION_COOKIE_NAME, { path: '/' });
+	cookies.delete(refreshCookieName(), { path: '/' });
+}
+
+export function readSession(cookies: Cookies): Session | null {
+	const accessToken = cookies.get(env().SESSION_COOKIE_NAME);
+	const refreshToken = cookies.get(refreshCookieName());
+
+	if (!accessToken || !refreshToken) return null;
+	return { accessToken, refreshToken };
+}

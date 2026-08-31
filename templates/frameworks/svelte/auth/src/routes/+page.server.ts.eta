@@ -1,0 +1,7 @@
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = ({ locals }) => {
+	// Only whether a session exists — never the session itself, which would put
+	// the tokens into the page payload sent to the browser.
+	return { signedIn: locals.session !== null };
+};

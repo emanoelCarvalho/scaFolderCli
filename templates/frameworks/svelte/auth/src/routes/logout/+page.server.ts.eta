@@ -1,0 +1,19 @@
+import { redirect } from '@sveltejs/kit';
+import { logoutWithApi } from '$lib/server/auth';
+import { clearSession } from '$lib/server/session';
+import type { Actions } from './$types';
+
+export const actions: Actions = {
+	default: async ({ cookies, locals }) => {
+		if (locals.session) {
+			// Revoke server-side first, but never let a failing API keep the
+			// user signed in locally: clearing the cookies is what they asked for.
+			await logoutWithApi(locals.session.refreshToken).catch((error: unknown) => {
+				console.error('Failed to revoke the session on the API', error);
+			});
+		}
+
+		clearSession(cookies);
+		redirect(303, '/login');
+	}
+};

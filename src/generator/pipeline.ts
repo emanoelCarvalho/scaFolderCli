@@ -51,7 +51,10 @@ export async function generateProject(
   const targetDir = path.resolve(request.targetDir);
   await assertTargetUsable(targetDir, request.force);
 
-  const files = new ProjectFiles(targetDir, { dryRun: request.dryRun });
+  const files = new ProjectFiles(targetDir, {
+    dryRun: request.dryRun,
+    ...(generator.jsonIndent ? { jsonIndent: generator.jsonIndent } : {}),
+  });
   const context: GenerationContext = {
     config,
     request: { ...request, config, targetDir },

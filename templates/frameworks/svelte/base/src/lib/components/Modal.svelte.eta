@@ -1,0 +1,36 @@
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+
+	interface Props {
+		open: boolean;
+		onclose: () => void;
+		title: string;
+		children: Snippet;
+	}
+
+	let { open, onclose, title, children }: Props = $props();
+
+	let dialog = $state<HTMLDialogElement>();
+
+	// Built on the native <dialog>: showModal() gives focus trapping,
+	// Escape-to-close, inert background content and the right role for free —
+	// all things a hand-rolled modal gets wrong.
+	$effect(() => {
+		if (!dialog) return;
+		if (open && !dialog.open) dialog.showModal();
+		if (!open && dialog.open) dialog.close();
+	});
+</script>
+
+<dialog
+	bind:this={dialog}
+	{onclose}
+	onclick={(event) => {
+		// Clicking the backdrop targets the dialog itself, not its children.
+		if (event.target === dialog) onclose();
+	}}
+	class="m-auto w-full max-w-md rounded-lg bg-white p-6 text-neutral-900 backdrop:bg-black/50 dark:bg-neutral-900 dark:text-white"
+>
+	<h2 class="text-lg font-semibold">{title}</h2>
+	<div class="mt-4">{@render children()}</div>
+</dialog>

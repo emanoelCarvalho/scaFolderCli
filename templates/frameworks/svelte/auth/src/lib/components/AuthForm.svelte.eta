@@ -1,0 +1,63 @@
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import Button from '$lib/components/Button.svelte';
+	import PasswordField from '$lib/components/PasswordField.svelte';
+	import TextField from '$lib/components/TextField.svelte';
+	import Toast from '$lib/components/Toast.svelte';
+
+	interface ActionResult {
+		email?: string;
+		message?: string;
+		errors?: Record<string, string>;
+	}
+
+	interface Props {
+		mode: 'login' | 'register';
+		form: ActionResult | null;
+	}
+
+	let { mode, form }: Props = $props();
+
+	let submitting = $state(false);
+
+	const isRegister = $derived(mode === 'register');
+</script>
+
+<!--
+	`use:enhance` upgrades the form without changing its meaning: with
+	JavaScript disabled the same action runs on a full page post.
+-->
+<form
+	method="POST"
+	use:enhance={() => {
+		submitting = true;
+		return async ({ update }) => {
+			await update();
+			submitting = false;
+		};
+	}}
+	class="flex flex-col gap-4"
+>
+	<TextField
+		label="Email"
+		name="email"
+		type="email"
+		autocomplete="email"
+		required
+		value={form?.email ?? ''}
+		error={form?.errors?.email}
+	/>
+	<PasswordField
+		label="Password"
+		name="password"
+		autocomplete={isRegister ? 'new-password' : 'current-password'}
+		required
+		error={form?.errors?.password}
+		hint={isRegister ? 'At least 12 characters.' : undefined}
+	/>
+	<Button type="submit" loading={submitting} class="mt-2">
+		{isRegister ? 'Create account' : 'Sign in'}
+	</Button>
+</form>
+
+<Toast message={form?.message ?? null} tone="error" />

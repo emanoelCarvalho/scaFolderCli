@@ -2,6 +2,7 @@ import type { FrameworkGenerator } from './contract.js';
 import { expressGenerator } from './frameworks/express/index.js';
 import { nestjsGenerator } from './frameworks/nestjs/index.js';
 import { nextjsGenerator } from './frameworks/nextjs/index.js';
+import { svelteGenerator } from './frameworks/svelte/index.js';
 import { registerGenerator } from './registry.js';
 
 /**
@@ -12,6 +13,7 @@ const BUILT_INS: readonly FrameworkGenerator[] = [
   nestjsGenerator,
   expressGenerator,
   nextjsGenerator,
+  svelteGenerator,
 ];
 
 export function registerBuiltInGenerators(): void {

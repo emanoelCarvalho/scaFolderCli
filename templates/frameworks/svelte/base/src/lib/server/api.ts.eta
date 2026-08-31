@@ -1,0 +1,71 @@
+import { ApiError } from '$lib/api-error';
+import { env } from './env';
+
+export interface ApiRequest {
+	method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+	body?: unknown;
+	/** Bearer token, when the call is on behalf of a signed-in user. */
+	accessToken?: string;
+	/** SvelteKit's fetch, so server-side calls reuse the request context. */
+	fetch?: typeof globalThis.fetch;
+}
+
+interface ErrorBody {
+	message?: string;
+	code?: string;
+	details?: { path: string; message: string }[];
+}
+
+/**
+ * The single place this application talks to the API.
+ *
+ * Lives under `$lib/server`, which SvelteKit refuses to bundle into client
+ * code — so a token can never reach the browser through this module.
+ */
+export async function callApi<T>(path: string, request: ApiRequest = {}): Promise<T> {
+	const { method = 'GET', body, accessToken, fetch: fetcher = fetch } = request;
+
+	const headers: Record<string, string> = { accept: 'application/json' };
+	if (body !== undefined) headers['content-type'] = 'application/json';
+	if (accessToken) headers['authorization'] = `Bearer ${accessToken}`;
+
+	let response: Response;
+	try {
+		response = await fetcher(`${env().API_URL}${path}`, {
+			method,
+			headers,
+			...(body !== undefined ? { body: JSON.stringify(body) } : {})
+		});
+	} catch (cause) {
+		// The API being unreachable is a 503 from this application's point of
+		// view, not an unhandled crash. The cause is kept for the server log.
+		throw new ApiError(503, 'The API is unreachable', { code: 'API_UNREACHABLE', cause });
+	}
+
+	if (!response.ok) throw await apiErrorFrom(response);
+	if (response.status === 204) return undefined as T;
+
+	return (await response.json()) as T;
+}
+
+/**
+ * Builds an ApiError from a failed response. A body that is not JSON, or has no
+ * message, still produces a usable error rather than throwing again.
+ */
+async function apiErrorFrom(response: Response): Promise<ApiError> {
+	let body: ErrorBody = {};
+	try {
+		body = (await response.json()) as ErrorBody;
+	} catch {
+		// Not JSON. The status alone is what we have.
+	}
+
+	return new ApiError(
+		response.status,
+		body.message ?? `Request failed with status ${response.status}`,
+		{
+			...(body.code ? { code: body.code } : {}),
+			...(body.details ? { details: body.details } : {})
+		}
+	);
+}

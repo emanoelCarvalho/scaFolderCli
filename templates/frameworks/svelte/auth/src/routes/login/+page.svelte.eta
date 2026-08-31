@@ -1,0 +1,16 @@
+<script lang="ts">
+	import { resolve } from '$app/paths';
+	import AuthForm from '$lib/components/AuthForm.svelte';
+
+	let { form } = $props();
+</script>
+
+<svelte:head><title>Sign in</title></svelte:head>
+
+<main class="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
+	<h1 class="text-2xl font-semibold">Sign in</h1>
+	<AuthForm mode="login" {form} />
+	<p class="text-sm opacity-70">
+		No account? <a href={resolve('/register')} class="underline">Create one</a>
+	</p>
+</main>

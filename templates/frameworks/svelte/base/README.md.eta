@@ -1,0 +1,105 @@
+# <%= it.projectName %>
+
+SvelteKit web client<% if (it.hasAuth) { %> with JWT authentication against an external API<% } %>.
+
+Generated with [scafoldercli](https://www.npmjs.com/package/scafoldercli). This
+project is yours: nothing depends on the generator at runtime.
+
+## Requirements
+
+- Node.js <%= it.nodeVersion %> or newer
+- An API to talk to. Generate a matching one with:
+  `npx scafoldercli create my-api --preset nestjs-api`
+<% if (it.hasDocker) { -%>
+- Docker (optional, for running the client in a container)
+<% } -%>
+
+## Getting started
+
+```bash
+cp .env.example .env
+<%= it.config.packageManager %> install
+<%= it.config.packageManager %> run dev
+```
+
+The client listens on <http://localhost:<%= it.port %>> and calls the API at
+`API_URL` (default <http://localhost:3000>).
+
+## Scripts
+
+| Script | What it does |
+| --- | --- |
+| `dev` | Run with hot reload |
+| `build` | Production build (Node adapter) |
+| `start` | Serve the build with `node build` |
+| `lint` | Lint |
+| `typecheck` | `svelte-check` across the project |
+| `format` | Format with Prettier |
+<% if (it.hasTests) { -%>
+| `test` | Run the test suite |
+<% } -%>
+<% if (it.hasAuth) { -%>
+
+## How authentication works
+
+The browser never sees a token.
+
+```
+form post ──▶ +page.server.ts action  (same origin)
+                    │  calls the API, writes an httpOnly cookie
+                    ▼
+               your API
+```
+
+Sign-in and sign-up are **form actions**, not API routes — the SvelteKit way.
+They work with JavaScript disabled, and `use:enhance` upgrades them to a
+fetch-based submit when it is available.
+
+| Route | Purpose |
+| --- | --- |
+| `POST /login` | Exchange credentials for a session |
+| `POST /register` | Create an account and start a session |
+| `POST /logout` | Revoke the session and clear the cookies |
+
+Tokens live in httpOnly, `sameSite=lax` cookies that JavaScript cannot read.
+`src/hooks.server.ts` reads them once per request onto `event.locals`, and
+anything under `$lib/server` is refused by SvelteKit if a component tries to
+import it — so a token cannot leak into the client bundle by accident.
+
+The hook also redirects signed-out visitors away from `/dashboard`. That is a
+convenience: the page's own `load` re-checks the session, and the API remains
+the authority.
+<% } -%>
+
+## Project structure
+
+```
+src/
+<% if (it.hasAuth) { -%>
+├── hooks.server.ts       session per request, route protection
+<% } -%>
+├── lib/
+│   ├── server/           never bundled into client code
+│   └── components/       button, fields, modal, toast, states
+└── routes/               pages and their server actions
+```
+<% if (it.hasDocker) { -%>
+
+## Docker
+
+```bash
+docker compose up --build
+```
+
+The image runs the Node adapter output as a non-root user. Set `ORIGIN` to the
+public URL: SvelteKit rejects form posts whose origin it cannot verify, and a
+mismatch there is the usual cause of a 403 on submit.
+<% } -%>
+
+## Documentation
+
+<% if (it.config.aiDocumentation) { -%>
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — structure, layers and dependency rules
+- [`CONVENTIONS.md`](CONVENTIONS.md) — how code in this repository is written
+- [`AGENTS.md`](AGENTS.md) — operational rules for coding agents
+<% } -%>

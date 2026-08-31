@@ -1,0 +1,25 @@
+import { redirect, type Handle } from '@sveltejs/kit';
+import { readSession } from '$lib/server/session';
+
+/** Routes that require a session. Everything else is public. */
+const PROTECTED_PREFIXES = ['/dashboard'];
+
+/**
+ * Reads the session cookie once per request and puts it on `event.locals`, so
+ * every load function and action works from the same value.
+ *
+ * The redirect here is a convenience, not the authorisation decision: it only
+ * checks that a cookie exists. Each protected load re-reads the session, and
+ * the API remains the authority.
+ */
+export const handle: Handle = async ({ event, resolve }) => {
+	event.locals.session = readSession(event.cookies);
+
+	const isProtected = PROTECTED_PREFIXES.some((prefix) => event.url.pathname.startsWith(prefix));
+
+	if (isProtected && !event.locals.session) {
+		redirect(303, '/login');
+	}
+
+	return resolve(event);
+};

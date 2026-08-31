@@ -1,0 +1,31 @@
+export interface ApiErrorOptions {
+	code?: string;
+	details?: readonly { path: string; message: string }[];
+	cause?: unknown;
+}
+
+/**
+ * An error returned by the API, already translated into something a page can
+ * render. `status` is preserved so callers can tell "not found" from "not
+ * allowed" without parsing strings.
+ */
+export class ApiError extends Error {
+	readonly code: string | undefined;
+	readonly details: readonly { path: string; message: string }[] | undefined;
+
+	constructor(
+		readonly status: number,
+		message: string,
+		options: ApiErrorOptions = {}
+	) {
+		super(message, { cause: options.cause });
+		this.name = 'ApiError';
+		this.code = options.code;
+		this.details = options.details;
+	}
+
+	/** True when the caller can fix this by changing their input. */
+	get isClientError(): boolean {
+		return this.status >= 400 && this.status < 500;
+	}
+}

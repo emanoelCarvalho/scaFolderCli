@@ -1,0 +1,17 @@
+<script lang="ts">
+	interface Props {
+		size?: number;
+		/** Announce the spinner. Omit when a surrounding control already does. */
+		label?: string;
+	}
+
+	let { size = 20, label }: Props = $props();
+</script>
+
+<span
+	role={label ? 'status' : undefined}
+	aria-label={label}
+	aria-hidden={label ? undefined : true}
+	class="inline-block animate-spin rounded-full border-2 border-current border-t-transparent"
+	style="width: {size}px; height: {size}px;"
+></span>

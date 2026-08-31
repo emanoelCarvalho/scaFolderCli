@@ -1,0 +1,44 @@
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+	import type { HTMLButtonAttributes } from 'svelte/elements';
+	import Spinner from './Spinner.svelte';
+
+	type Variant = 'primary' | 'secondary' | 'danger';
+
+	interface Props extends HTMLButtonAttributes {
+		variant?: Variant;
+		/** Shows a spinner and blocks interaction. Use for in-flight requests. */
+		loading?: boolean;
+		children: Snippet;
+	}
+
+	let {
+		variant = 'primary',
+		loading = false,
+		disabled,
+		class: className = '',
+		children,
+		...rest
+	}: Props = $props();
+
+	const variants: Record<Variant, string> = {
+		primary: 'bg-neutral-900 text-white hover:opacity-90 dark:bg-white dark:text-neutral-900',
+		secondary:
+			'border border-black/15 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10',
+		danger: 'bg-red-600 text-white hover:bg-red-700'
+	};
+</script>
+
+<button
+	{...rest}
+	aria-busy={loading}
+	disabled={disabled ?? loading}
+	class="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 {variants[
+		variant
+	]} {className}"
+>
+	{#if loading}
+		<Spinner size={16} />
+	{/if}
+	{@render children()}
+</button>

@@ -48,6 +48,12 @@ export interface FrameworkGenerator {
    */
   readonly localEnvFile?: string;
 
+  /**
+   * Indentation this ecosystem's formatter expects in JSON files. Defaults to
+   * two spaces; SvelteKit uses tabs.
+   */
+  readonly jsonIndent?: string;
+
   /** Human-readable steps for `--dry-run`. */
   describePlan?(context: GenerationContext): string[];
 

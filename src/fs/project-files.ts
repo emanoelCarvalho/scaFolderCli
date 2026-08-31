@@ -10,6 +10,12 @@ type Operation = { kind: 'write'; content: string } | { kind: 'delete' };
 export interface ProjectFilesOptions {
   /** Buffer everything and never touch the filesystem. */
   dryRun?: boolean;
+  /**
+   * Indentation for generated JSON. Two spaces suits most ecosystems; SvelteKit
+   * formats with tabs, and a manifest that fails the project's own
+   * `format:check` is a defect.
+   */
+  jsonIndent?: string;
 }
 
 /**
@@ -40,7 +46,7 @@ export class ProjectFiles {
   }
 
   writeJson(relativePath: string, value: JsonObject): void {
-    this.write(relativePath, `${formatJson(value)}\n`);
+    this.write(relativePath, `${formatJson(value, this.options.jsonIndent ?? '  ')}\n`);
   }
 
   delete(relativePath: string): void {
@@ -130,8 +136,8 @@ const JSON_PRINT_WIDTH = 100;
  *
  * Only arrays of primitives are collapsed, and only when the result fits.
  */
-export function formatJson(value: JsonObject): string {
-  const expanded = JSON.stringify(value, null, 2);
+export function formatJson(value: JsonObject, indent = '  '): string {
+  const expanded = JSON.stringify(value, null, indent);
 
   return expanded
     .split('\n')

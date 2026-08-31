@@ -1,0 +1,20 @@
+node_modules
+build
+.svelte-kit
+coverage
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode
+.idea
+Dockerfile
+docker-compose.yml
+.dockerignore
+<% if (it.config.aiDocumentation) { -%>
+# Documentation is not needed inside the image.
+*.md
+<% } -%>

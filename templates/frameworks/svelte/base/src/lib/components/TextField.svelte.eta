@@ -1,0 +1,43 @@
+<script lang="ts">
+	import type { HTMLInputAttributes } from 'svelte/elements';
+
+	interface Props extends Omit<HTMLInputAttributes, 'id'> {
+		label: string;
+		/** Message shown below the control. Also marks the control invalid. */
+		error?: string;
+		hint?: string;
+	}
+
+	let { label, error, hint, class: className = '', ...rest }: Props = $props();
+
+	// Stable across server and client render, which is what hydration needs.
+	const id = $props.id();
+	const hintId = `${id}-hint`;
+	const errorId = `${id}-error`;
+	// `$derived`, not a plain const: `error` arrives after a failed submit, and a
+	// captured initial value would leave aria-describedby pointing at nothing —
+	// the message would render but never be announced with the field.
+	const describedBy = $derived(
+		[hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ')
+	);
+</script>
+
+<div class="flex flex-col gap-1.5">
+	<label for={id} class="text-sm font-medium">{label}</label>
+	<input
+		{...rest}
+		{id}
+		aria-invalid={error ? 'true' : undefined}
+		aria-describedby={describedBy || undefined}
+		class="w-full rounded-md border bg-transparent px-3 py-2 text-sm transition outline-none focus:ring-2 focus:ring-black/20 disabled:opacity-60 dark:focus:ring-white/30 {error
+			? 'border-red-500'
+			: 'border-black/15 dark:border-white/20'} {className}"
+	/>
+	{#if hint && !error}
+		<p id={hintId} class="text-xs opacity-60">{hint}</p>
+	{/if}
+	{#if error}
+		<!-- role="alert" so the message is announced when it appears. -->
+		<p id={errorId} role="alert" class="text-xs text-red-600">{error}</p>
+	{/if}
+</div>

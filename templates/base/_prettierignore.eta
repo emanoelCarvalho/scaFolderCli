@@ -1,6 +1,15 @@
 node_modules
 dist
 coverage
+<% if (it.config.framework === 'svelte') { -%>
+.svelte-kit
+build
+
+# Written by `sv create`, which emits them in a style its own Prettier config
+# rejects. Reformatting them would mean fighting files the framework rewrites.
+eslint.config.js
+vite.config.ts
+<% } -%>
 <% if (it.config.framework === 'nextjs') { -%>
 .next
 

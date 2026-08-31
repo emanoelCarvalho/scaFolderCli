@@ -1,0 +1,22 @@
+import { z } from 'zod';
+
+/**
+ * Shared by the forms and the server actions, so the browser and the server
+ * agree on what valid input is. The API validates again — this is for feedback,
+ * never for trust.
+ */
+export const credentialsSchema = z.object({
+	email: z.string().email('Enter a valid email address').max(254),
+	password: z
+		.string()
+		.min(12, 'Password must be at least 12 characters')
+		.max(128, 'Password is too long')
+});
+
+export const loginSchema = z.object({
+	email: z.string().email('Enter a valid email address').max(254),
+	password: z.string().min(1, 'Enter your password').max(128)
+});
+
+export type CredentialsInput = z.infer<typeof credentialsSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;

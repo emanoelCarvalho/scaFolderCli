@@ -1,0 +1,16 @@
+import { error, redirect } from '@sveltejs/kit';
+import { fetchMe } from '$lib/server/auth';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	// The hook already redirects, but a load must never assume it ran: this is
+	// the check that actually protects the data.
+	if (!locals.session) redirect(303, '/login');
+
+	try {
+		return { user: await fetchMe(locals.session.accessToken) };
+	} catch {
+		// The reason is not forwarded: it would leak API internals into a page.
+		error(503, 'Could not load your account. The API did not respond.');
+	}
+};

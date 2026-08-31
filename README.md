@@ -9,11 +9,10 @@ npx scafoldercli create
 Answer a few questions, get a project that installs, tests, builds, runs in a
 container, and documents itself — for humans and for coding agents.
 
-> **Status: early development.** The NestJS, Express and Next.js paths are
-> complete, and each is verified by generating a real project that installs,
-> lints, tests, builds, runs in a container and serves authentication. Svelte is
-> not implemented yet. Run `npx scafoldercli list` to see what this build can
-> generate — nothing is offered that it cannot produce.
+> **Status: early development.** All four frameworks are implemented, and each
+> is verified by generating a real project that installs, lints, type-checks,
+> tests, builds and runs in a container. Run `npx scafoldercli list` to see what
+> this build can generate — nothing is offered that it cannot produce.
 
 ## What it generates
 
@@ -144,25 +143,30 @@ Run `scafoldercli list` for the full matrix.
 
 ### What the implemented frameworks produce today
 
-| Choice             | NestJS             | Express          | Next.js      |
-| ------------------ | ------------------ | ---------------- | ------------ |
-| Project type       | REST API           | REST API         | Web client   |
-| Architecture       | Modular            | Modular          | Modular      |
-| Database           | PostgreSQL, none   | PostgreSQL, none | none         |
-| ORM                | Prisma, none       | Prisma, none     | none         |
-| Authentication     | JWT, none          | JWT, none        | JWT, none    |
-| Repository pattern | Yes or no          | Yes or no        | —            |
-| Tests              | Vitest, Jest, none | Vitest, none     | Vitest, none |
-| Docker             | Yes or no          | Yes or no        | Yes or no    |
+| Choice             | NestJS             | Express          | Next.js      | Svelte       |
+| ------------------ | ------------------ | ---------------- | ------------ | ------------ |
+| Project type       | REST API           | REST API         | Web client   | Web client   |
+| Architecture       | Modular            | Modular          | Modular      | Modular      |
+| Database           | PostgreSQL, none   | PostgreSQL, none | none         | none         |
+| ORM                | Prisma, none       | Prisma, none     | none         | none         |
+| Authentication     | JWT, none          | JWT, none        | JWT, none    | JWT, none    |
+| Repository pattern | Yes or no          | Yes or no        | —            | —            |
+| Tests              | Vitest, Jest, none | Vitest, none     | Vitest, none | Vitest, none |
+| Docker             | Yes or no          | Yes or no        | Yes or no    | Yes or no    |
 
 Layered and clean layouts, other databases and other ORMs are planned; they are
 not offered until the generator can actually produce them.
 
-Each path follows its own ecosystem. NestJS delegates its baseline to
-`@nestjs/cli` and uses class-validator and its own DI container. Express has no
-official scaffolder, so scafoldercli supplies the whole structure: ESM, zod,
-pino, `jose`, and a composition root. Next.js builds on `create-next-app` with
-the App Router and Tailwind, and keeps authentication on the server — see
+Each path follows its own ecosystem rather than a house style imposed on all
+four. NestJS delegates its baseline to `@nestjs/cli` and uses class-validator
+and its own DI container. Express has no official scaffolder, so scafoldercli
+supplies the whole structure: ESM, zod, pino, `jose`, and a composition root.
+Next.js builds on `create-next-app` with the App Router, and keeps
+authentication in route handlers. SvelteKit uses `sv create` and does
+authentication with **form actions**, which work with JavaScript disabled.
+
+What does not vary is the security posture: on both web clients the browser
+never receives a token. See
 [`docs/adr/0008-express-stack.md`](docs/adr/0008-express-stack.md) and
 [`docs/adr/0009-nextjs-auth-bff.md`](docs/adr/0009-nextjs-auth-bff.md).
 

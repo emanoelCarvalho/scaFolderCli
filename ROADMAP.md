@@ -91,9 +91,25 @@ A web client, not a full-stack server (see `docs/adr/0005-frontend-scope.md`).
 - [ ] Jest
 - [ ] Layered architecture layout
 
-## Phase 5 — Svelte
+## Phase 5 — Svelte ✅
 
-Same specification as Phase 4, following SvelteKit conventions.
+Same specification as Phase 4, expressed the way SvelteKit does it.
+
+- [x] Delegate initialisation to `sv create`, using its official add-ons for
+      Prettier, ESLint, Vitest, Tailwind and the Node adapter
+- [x] Validated configuration under `$lib/server`, which SvelteKit refuses to
+      bundle into client code
+- [x] Authentication through **form actions**, not API routes — the framework's
+      own answer, and one that works with JavaScript disabled
+- [x] `hooks.server.ts` puts the session on `event.locals` once per request
+- [x] Svelte 5 runes throughout; the component set from the spec
+- [x] Vitest (unit), Dockerfile on the Node adapter, compose file
+- [x] Golden project smoke test: install → typecheck → lint → format → test →
+      build → docker build
+- [x] Verified running: route protection, form actions, httpOnly cookies, no
+      token in the rendered HTML, and a real 303 redirect without JavaScript
+- [ ] Component tests (they run through Playwright, which downloads a browser)
+- [ ] Layered architecture layout
 
 ## Phase 6 — Hardening
 

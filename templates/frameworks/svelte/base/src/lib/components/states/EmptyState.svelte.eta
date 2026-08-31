@@ -1,0 +1,18 @@
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+
+	interface Props {
+		title: string;
+		/** What the user can do to fill this space. */
+		message?: string;
+		action?: Snippet;
+	}
+
+	let { title, message, action }: Props = $props();
+</script>
+
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+	<h2 class="text-base font-medium">{title}</h2>
+	{#if message}<p class="max-w-md text-sm opacity-70">{message}</p>{/if}
+	{#if action}{@render action()}{/if}
+</div>

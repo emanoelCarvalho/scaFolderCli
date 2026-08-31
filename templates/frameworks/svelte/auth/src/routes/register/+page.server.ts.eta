@@ -1,0 +1,46 @@
+import { fail, redirect } from '@sveltejs/kit';
+import { ApiError } from '$lib/api-error';
+import { credentialsSchema } from '$lib/schemas';
+import { registerWithApi } from '$lib/server/auth';
+import { setSession } from '$lib/server/session';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = ({ locals }) => {
+	if (locals.session) redirect(303, '/dashboard');
+};
+
+export const actions: Actions = {
+	default: async ({ request, cookies }) => {
+		const form = await request.formData();
+		const email = String(form.get('email') ?? '');
+		const parsed = credentialsSchema.safeParse({
+			email,
+			password: String(form.get('password') ?? '')
+		});
+
+		if (!parsed.success) {
+			// The email is echoed back so the user does not retype it; the
+			// password never is.
+			return fail(400, {
+				email,
+				errors: Object.fromEntries(
+					parsed.error.issues.map((issue) => [String(issue.path[0] ?? ''), issue.message])
+				)
+			});
+		}
+
+		try {
+			const { session } = await registerWithApi(parsed.data.email, parsed.data.password);
+			setSession(cookies, session);
+		} catch (error) {
+			const status = error instanceof ApiError ? error.status : 500;
+			const message =
+				error instanceof ApiError ? error.message : 'Something went wrong. Try again.';
+			return fail(status, { email, message });
+		}
+
+		// Outside the try: redirect() works by throwing, and catching it here
+		// would turn a successful sign-in into an error.
+		redirect(303, '/dashboard');
+	}
+};

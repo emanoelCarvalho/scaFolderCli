@@ -1,0 +1,45 @@
+import { callApi } from './api';
+import type { Session, SessionUser } from './session';
+
+interface AuthResponse {
+	user: SessionUser;
+	accessToken: string;
+	refreshToken: string;
+}
+
+export interface AuthResult {
+	user: SessionUser;
+	session: Session;
+}
+
+function toResult(response: AuthResponse): AuthResult {
+	return {
+		user: response.user,
+		session: { accessToken: response.accessToken, refreshToken: response.refreshToken }
+	};
+}
+
+/**
+ * The API endpoints this client depends on. Generated to match the API that
+ * `scafoldercli create --preset nestjs-api` (or `express-api`) produces; adjust
+ * the paths here if your API differs.
+ */
+export async function registerWithApi(email: string, password: string): Promise<AuthResult> {
+	return toResult(
+		await callApi<AuthResponse>('/auth/register', { method: 'POST', body: { email, password } })
+	);
+}
+
+export async function loginWithApi(email: string, password: string): Promise<AuthResult> {
+	return toResult(
+		await callApi<AuthResponse>('/auth/login', { method: 'POST', body: { email, password } })
+	);
+}
+
+export async function logoutWithApi(refreshToken: string): Promise<void> {
+	await callApi<void>('/auth/logout', { method: 'POST', body: { refreshToken } });
+}
+
+export async function fetchMe(accessToken: string): Promise<SessionUser> {
+	return callApi<SessionUser>('/auth/me', { accessToken });
+}

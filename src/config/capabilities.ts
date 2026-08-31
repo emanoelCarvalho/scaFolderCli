@@ -121,13 +121,13 @@ export const FRAMEWORK_CAPABILITIES: Readonly<Record<Framework, FrameworkCapabil
       aiDocumentation: true,
     },
   },
-  // Planned. Rows for unimplemented frameworks describe the intended scope;
-  // nothing is offered to users until a generator is registered.
+  // Implemented. Like the other implemented rows, this states exactly what the
+  // generator produces today.
   svelte: {
     label: 'Svelte',
     hint: 'SvelteKit web client generated through its official scaffolder',
     projectTypes: ['web'],
-    architectures: ['modular', 'layered'],
+    architectures: ['modular'],
     databases: ['none'],
     orms: ['none'],
     authentication: ['jwt', 'none'],
