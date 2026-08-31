@@ -1,7 +1,6 @@
 import path from 'node:path';
 import type { JsonObject } from '../../../fs/project-files.js';
 import { sortObjectKeys } from '../../../fs/project-files.js';
-import { commandExists } from '../../../process/exec.js';
 import {
   ciInstallCommand,
   lockfileName,
@@ -35,15 +34,6 @@ export const nextjsGenerator: FrameworkGenerator = {
   framework: 'nextjs',
   // Next.js loads `.env.local` and gitignores it; `.env` is for committed defaults.
   localEnvFile: '.env.local',
-
-  async validate(context) {
-    const manager = context.config.packageManager;
-    if (!(await commandExists(manager))) {
-      throw new ScafolderError('UNSUPPORTED_ENVIRONMENT', `"${manager}" is not available.`, {
-        hint: `Install ${manager}, or choose another one with --package-manager.`,
-      });
-    }
-  },
 
   /**
    * Delegates the baseline to create-next-app rather than reimplementing it, so

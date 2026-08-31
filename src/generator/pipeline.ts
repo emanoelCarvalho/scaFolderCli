@@ -10,7 +10,7 @@ import { writeLocalEnvFile } from './env-file.js';
 import { restoreFrameworkFiles, snapshotFrameworkFiles } from './framework-files.js';
 import { isDirectoryEmpty, ensureDir, pathExists, removeDir } from '../fs/files.js';
 import { ProjectFiles } from '../fs/project-files.js';
-import { runCommand } from '../process/exec.js';
+import { commandExists, runCommand } from '../process/exec.js';
 import { createPackageManager } from '../process/package-manager.js';
 import { buildTemplateData } from '../template/data.js';
 import { ScafolderError } from '../util/errors.js';
@@ -64,7 +64,14 @@ export async function generateProject(
       runCommand(command, args, { cwd: targetDir, ...options, onOutput: logOutput(logger) }),
   };
 
-  await generator.validate(context);
+  // Only relevant when dependencies will be installed. A dry run writes
+  // nothing and installs nothing, so demanding the binary there would fail on a
+  // machine that never needed it.
+  if (request.install && !request.dryRun) {
+    await assertPackageManagerAvailable(config.packageManager);
+  }
+
+  await generator.validate?.(context);
 
   const steps: string[] = [];
   const rootExistedBefore = await pathExists(targetDir);
@@ -136,6 +143,13 @@ export async function generateProject(
     }
     throw error;
   }
+}
+
+async function assertPackageManagerAvailable(manager: string): Promise<void> {
+  if (await commandExists(manager)) return;
+  throw new ScafolderError('UNSUPPORTED_ENVIRONMENT', `"${manager}" is not available.`, {
+    hint: `Install ${manager}, choose another one with --package-manager, or pass --no-install.`,
+  });
 }
 
 async function assertTargetUsable(targetDir: string, force: boolean): Promise<void> {

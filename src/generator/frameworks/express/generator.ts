@@ -1,14 +1,12 @@
 import path from 'node:path';
 import type { JsonObject } from '../../../fs/project-files.js';
 import { sortObjectKeys } from '../../../fs/project-files.js';
-import { commandExists } from '../../../process/exec.js';
 import {
   ciInstallCommand,
   lockfileName,
   prodInstallCommand,
 } from '../../../process/package-manager.js';
 import { applyLayers, type Layer } from '../../../template/engine.js';
-import { ScafolderError } from '../../../util/errors.js';
 import type { GenerationContext } from '../../context.js';
 import type { FrameworkGenerator } from '../../contract.js';
 import { resolveDependencies } from './dependencies.js';
@@ -16,15 +14,6 @@ import { describeExpressProject } from './documentation.js';
 
 export const expressGenerator: FrameworkGenerator = {
   framework: 'express',
-
-  async validate(context) {
-    const manager = context.config.packageManager;
-    if (!(await commandExists(manager))) {
-      throw new ScafolderError('UNSUPPORTED_ENVIRONMENT', `"${manager}" is not available.`, {
-        hint: `Install ${manager}, or choose another one with --package-manager.`,
-      });
-    }
-  },
 
   /**
    * Express ships no official scaffolder and has no opinion about project

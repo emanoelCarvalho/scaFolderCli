@@ -22,6 +22,8 @@ next and why.
 - Never commit a `.env` with real values. `.env.example` only.
 - Never skip, delete or weaken a test to make the build pass.
 - Never advance to the next roadmap phase while the current one is red.
+- Never let `engines` claim a Node version the dependencies do not support, and
+  never change it without changing the CI matrix in the same commit.
 
 ## Adding a framework generator
 

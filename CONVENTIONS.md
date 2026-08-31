@@ -70,6 +70,10 @@ Rules for working in this repository. For the projects it generates, see the
 
 - A feature is not done without tests. Test behaviour, not implementation.
 - Unit tests use temporary directories and clean up in `afterEach`.
+- **A unit test must never depend on a binary being installed.** A test that
+  passes because `pnpm` happens to be on the developer's machine is a red CI
+  job waiting to happen; reproduce the environment with
+  `docker run --rm node:22-alpine` before trusting a green local run.
 - The generator registry is global; call `clearGenerators()` in `beforeEach`.
 - Golden-project tests must fail loudly. Never mark one as skipped to get green.
 

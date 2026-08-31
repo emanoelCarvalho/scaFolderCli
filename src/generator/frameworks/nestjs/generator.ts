@@ -1,7 +1,6 @@
 import path from 'node:path';
 import type { JsonObject } from '../../../fs/project-files.js';
 import { sortObjectKeys } from '../../../fs/project-files.js';
-import { commandExists } from '../../../process/exec.js';
 import {
   ciInstallCommand,
   lockfileName,
@@ -34,15 +33,6 @@ const SCAFFOLD_FILES_TO_REMOVE = [
 
 export const nestjsGenerator: FrameworkGenerator = {
   framework: 'nestjs',
-
-  async validate(context) {
-    const manager = context.config.packageManager;
-    if (!(await commandExists(manager))) {
-      throw new ScafolderError('UNSUPPORTED_ENVIRONMENT', `"${manager}" is not available.`, {
-        hint: `Install ${manager}, or choose another one with --package-manager.`,
-      });
-    }
-  },
 
   /**
    * Delegates the baseline to the Nest CLI rather than reimplementing it, so

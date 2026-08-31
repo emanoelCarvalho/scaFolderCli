@@ -241,6 +241,34 @@ describe('generateProject', () => {
   });
 });
 
+describe('package manager preconditions', () => {
+  it.each(['npm', 'pnpm', 'yarn'] as const)(
+    'plans a %s project without requiring that binary to exist',
+    async (packageManager) => {
+      // A dry run installs nothing, so demanding the binary would fail on any
+      // machine — CI included — that happens not to have it.
+      registerGenerator(fakeGenerator(recorded));
+
+      await expect(
+        generateProject(
+          request({ config: { ...config, packageManager }, dryRun: true, install: false }),
+          { logger: new MemoryLogger() },
+        ),
+      ).resolves.toMatchObject({ dryRun: true });
+    },
+  );
+
+  it('does not require the binary when installation is skipped', async () => {
+    registerGenerator(fakeGenerator(recorded));
+
+    await expect(
+      generateProject(request({ config: { ...config, packageManager: 'yarn' }, install: false }), {
+        logger: new MemoryLogger(),
+      }),
+    ).resolves.toBeTruthy();
+  });
+});
+
 describe('AI documentation and framework-owned files', () => {
   it('appends to files the framework CLI already wrote, instead of replacing them', async () => {
     registerGenerator(

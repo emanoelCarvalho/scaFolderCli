@@ -16,7 +16,7 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.12.0"
   },
   "bin": {
     "scafoldercli": "dist/cli.js"
@@ -50,7 +50,8 @@
     "prepack": "npm run clean && npm run build",
     "test:all": "vitest run",
     "verify:full": "npm run verify && npm run test:integration",
-    "test:golden": "vitest run tests/integration/nestjs-golden.test.ts tests/integration/express-golden.test.ts tests/integration/nextjs-golden.test.ts"
+    "test:golden": "vitest run tests/integration/nestjs-golden.test.ts tests/integration/express-golden.test.ts tests/integration/nextjs-golden.test.ts",
+    "test:package": "vitest run tests/integration/package.test.ts"
   },
   "publishConfig": {
     "access": "public"

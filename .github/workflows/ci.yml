@@ -14,7 +14,9 @@ jobs:
         # Windows is in the matrix from day one: portability is a product
         # requirement, not something to discover at release time.
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node: [20, 22, 24]
+        # Node 20 is end-of-life, and commander requires >= 22.12. The matrix
+        # matches the `engines` field; if one changes, so does the other.
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +27,7 @@ jobs:
       - run: npm run verify
 
   package:
+    name: published tarball
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +36,21 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
-      # Proves the published tarball is self-contained.
-      - run: npm run test:integration
+      # Proves the tarball installs into a clean project and runs from there.
+      - run: npm run test:package
+
+  golden:
+    name: golden projects
+    runs-on: ubuntu-latest
+    # Generates three real projects, installs them and builds their images.
+    # Slow and network-bound, so it runs on its own rather than blocking the
+    # fast checks.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:golden

@@ -17,10 +17,12 @@ export interface FrameworkGenerator {
   readonly framework: Framework;
 
   /**
-   * Preconditions beyond the capability matrix, e.g. a required external CLI.
-   * Must not modify anything.
+   * Preconditions specific to this framework. Must not modify anything.
+   *
+   * Optional: checks that apply to every framework — that the chosen package
+   * manager exists, for instance — belong in the pipeline, not repeated here.
    */
-  validate(context: GenerationContext): Promise<void>;
+  validate?(context: GenerationContext): Promise<void>;
 
   /**
    * Runs the ecosystem's own scaffolder. Writes straight to disk because an
