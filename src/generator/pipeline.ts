@@ -7,6 +7,7 @@ import {
 } from '../config/schema.js';
 import { writeAiDocumentation } from '../docs/ai-docs.js';
 import { writeLocalEnvFile } from './env-file.js';
+import { restoreFrameworkFiles, snapshotFrameworkFiles } from './framework-files.js';
 import { isDirectoryEmpty, ensureDir, pathExists, removeDir } from '../fs/files.js';
 import { ProjectFiles } from '../fs/project-files.js';
 import { runCommand } from '../process/exec.js';
@@ -76,20 +77,27 @@ export async function generateProject(
     }
     steps.push(...(generator.describePlan?.(context) ?? []));
 
+    // Recorded before our layers run, so files the framework CLI owns can be
+    // extended rather than overwritten.
+    const frameworkFiles = await snapshotFrameworkFiles(files);
+
     await generator.generate(context);
 
     // A generated project must be runnable straight away, which means the
     // environment file has to exist before any post-install tooling reads it.
+    const envFile = generator.localEnvFile ?? '.env';
     const envExample = await files.read('.env.example');
-    if (envExample !== null && !(await files.exists('.env'))) {
-      writeLocalEnvFile(files, envExample);
-      steps.push('Write a local .env with generated secrets');
+    if (envExample !== null && !(await files.exists(envFile))) {
+      writeLocalEnvFile(files, envExample, envFile);
+      steps.push(`Write a local ${envFile} with generated secrets`);
     }
 
     if (config.aiDocumentation) {
       await writeAiDocumentation(context, generator.documentation(context));
       steps.push('Write ARCHITECTURE.md, CONVENTIONS.md and AGENTS.md');
     }
+
+    await restoreFrameworkFiles(files, frameworkFiles);
 
     const writtenFiles = files.plannedWrites();
     const renderedFiles = files.plannedContents();

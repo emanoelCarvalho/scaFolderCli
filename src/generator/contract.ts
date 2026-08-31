@@ -40,6 +40,12 @@ export interface FrameworkGenerator {
   /** Runs after dependencies are installed. */
   finalize?(context: GenerationContext): Promise<void>;
 
+  /**
+   * Where this framework expects local configuration. Next.js reads
+   * `.env.local`; most others read `.env`, which is the default.
+   */
+  readonly localEnvFile?: string;
+
   /** Human-readable steps for `--dry-run`. */
   describePlan?(context: GenerationContext): string[];
 

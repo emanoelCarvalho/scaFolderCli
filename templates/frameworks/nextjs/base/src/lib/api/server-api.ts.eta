@@ -1,0 +1,47 @@
+import 'server-only';
+import { env } from '../env';
+import { ApiError, apiErrorFrom } from './api-error';
+
+export interface ApiRequest {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  body?: unknown;
+  /** Bearer token, when the call is on behalf of a signed-in user. */
+  accessToken?: string;
+  /** Next.js fetch caching. Defaults to none, which is right for an API. */
+  cache?: RequestCache;
+  signal?: AbortSignal;
+}
+
+/**
+ * The single place this application talks to the API.
+ *
+ * Server-only: browser code calls our own Route Handlers instead, so a token
+ * never reaches the client bundle. See docs/adr/0009-nextjs-auth-bff.md.
+ */
+export async function callApi<T>(path: string, request: ApiRequest = {}): Promise<T> {
+  const { method = 'GET', body, accessToken, cache = 'no-store', signal } = request;
+
+  const headers: Record<string, string> = { accept: 'application/json' };
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  if (accessToken) headers.authorization = `Bearer ${accessToken}`;
+
+  let response: Response;
+  try {
+    response = await fetch(`${env().API_URL}${path}`, {
+      method,
+      headers,
+      cache,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(signal ? { signal } : {}),
+    });
+  } catch (cause) {
+    // The API being unreachable is a 503 from this application's point of view,
+    // not an unhandled crash. The cause is kept for the server log.
+    throw new ApiError(503, 'The API is unreachable', { code: 'API_UNREACHABLE', cause });
+  }
+
+  if (!response.ok) throw await apiErrorFrom(response);
+  if (response.status === 204) return undefined as T;
+
+  return (await response.json()) as T;
+}

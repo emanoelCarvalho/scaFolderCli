@@ -1,0 +1,18 @@
+import { NextResponse } from 'next/server';
+import { logoutWithApi } from '@/lib/auth/auth-api';
+import { clearSession, getSession } from '@/lib/auth/session';
+
+export async function POST(): Promise<NextResponse> {
+  const session = await getSession();
+
+  if (session) {
+    // Revoke server-side first, but never let a failing API keep the user
+    // signed in locally: clearing the cookies is what the user asked for.
+    await logoutWithApi(session.refreshToken).catch((error: unknown) => {
+      console.error('Failed to revoke the session on the API', error);
+    });
+  }
+
+  await clearSession();
+  return new NextResponse(null, { status: 204 });
+}

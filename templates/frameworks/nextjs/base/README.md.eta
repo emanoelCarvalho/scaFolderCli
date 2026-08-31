@@ -1,0 +1,113 @@
+# <%= it.projectName %>
+
+Next.js web client<% if (it.hasAuth) { %> with JWT authentication against an external API<% } %>.
+
+Generated with [scafoldercli](https://www.npmjs.com/package/scafoldercli). This
+project is yours: nothing depends on the generator at runtime.
+
+## Requirements
+
+- Node.js <%= it.nodeVersion %> or newer
+- An API to talk to. Generate a matching one with:
+  `npx scafoldercli create my-api --preset nestjs-api`
+<% if (it.hasDocker) { -%>
+- Docker (optional, for running the client in a container)
+<% } -%>
+
+## Getting started
+
+```bash
+cp .env.example .env.local
+<%= it.config.packageManager %> install
+<%= it.config.packageManager %> run dev
+```
+
+The client listens on <http://localhost:<%= it.port %>> and calls the API at
+`API_URL` (default <http://localhost:3000>).
+
+## Scripts
+
+| Script | What it does |
+| --- | --- |
+| `dev` | Run with hot reload |
+| `build` | Production build |
+| `start` | Serve the production build |
+| `lint` | Lint |
+| `typecheck` | Type-check without emitting |
+| `format` | Format with Prettier |
+<% if (it.hasTests) { -%>
+| `test` | Run the test suite |
+| `test:watch` | Run tests in watch mode |
+| `test:cov` | Run tests with coverage |
+<% } -%>
+<% if (it.hasAuth) { -%>
+
+## How authentication works
+
+This app is a **backend-for-frontend**. The browser never sees a token.
+
+```
+browser ──fetch──▶ /api/auth/*  (this app's route handlers)
+                        │  reads the httpOnly cookie, adds Authorization
+                        ▼
+                   your API
+```
+
+| Route | Purpose |
+| --- | --- |
+| `POST /api/auth/register` | Create an account and start a session |
+| `POST /api/auth/login` | Exchange credentials for a session |
+| `POST /api/auth/refresh` | Rotate the session |
+| `POST /api/auth/logout` | Revoke the session and clear the cookies |
+
+Access and refresh tokens live in httpOnly, `sameSite=lax` cookies that
+JavaScript cannot read. Server Components read them through
+`src/lib/auth/session.ts`, which is marked `server-only` — importing it from a
+client component is a build error, not a silent leak.
+
+`src/middleware.ts` redirects signed-out visitors away from protected routes.
+That is a convenience: every protected page checks the session again, and the
+API remains the authority.
+<% } -%>
+
+## Project structure
+
+```
+src/
+├── app/                  routes (App Router)
+<% if (it.hasAuth) { -%>
+│   ├── (auth)/           sign-in and sign-up
+│   ├── (app)/            routes that require a session
+│   └── api/auth/         route handlers that hold the tokens
+<% } -%>
+├── components/
+│   ├── ui/               buttons, fields, modal, toast
+│   └── states/           loading, empty and error states
+└── lib/
+    ├── env.ts            validated, server-only configuration
+    ├── api/              the one place this app calls the API
+<% if (it.hasAuth) { -%>
+    └── auth/             session cookies and auth calls
+<% } -%>
+```
+<% if (it.hasDocker) { -%>
+
+## Docker
+
+```bash
+docker compose up --build
+```
+
+The image uses Next.js standalone output, runs as a non-root user, and takes all
+configuration from the environment.
+<% } -%>
+
+## Documentation
+
+<% if (it.config.aiDocumentation) { -%>
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — structure, layers and dependency rules
+- [`CONVENTIONS.md`](CONVENTIONS.md) — how code in this repository is written
+- [`AGENTS.md`](AGENTS.md) — operational rules for coding agents
+<% } else { -%>
+Run `scafoldercli create --ai-docs` to generate architecture documentation.
+<% } -%>

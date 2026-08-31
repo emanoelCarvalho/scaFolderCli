@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1
+
+# Multi-stage build using Next.js standalone output: the final image carries the
+# server and only the dependencies it actually imports — no source, no toolchain,
+# no dev dependencies. Nothing here depends on the machine that generated it.
+
+FROM node:<%= it.nodeVersion %>-alpine AS deps
+WORKDIR /app
+COPY package.json <%= it.lockfile %>* ./
+RUN <%= it.ciInstall %>
+
+FROM node:<%= it.nodeVersion %>-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+# The build validates configuration, so a value has to be present. It is a
+# placeholder: the real URL arrives from the environment at run time.
+ENV API_URL=http://build-time-placeholder
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN <%= it.buildCommand %>
+
+FROM node:<%= it.nodeVersion %>-alpine AS runtime
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=<%= it.port %>
+ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# `node` exists in the base image with uid 1000. Running as a non-root user is
+# a default, not a hardening step to remember later.
+COPY --from=build --chown=node:node /app/public ./public
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
+
+USER node
+EXPOSE <%= it.port %>
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||<%= it.port %>)+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+# Exec form: the process receives SIGTERM directly, so Next shuts down cleanly.
+CMD ["node", "server.js"]

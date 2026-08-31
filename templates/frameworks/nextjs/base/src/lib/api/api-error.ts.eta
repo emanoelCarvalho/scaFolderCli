@@ -1,0 +1,59 @@
+export interface ApiErrorOptions {
+  code?: string;
+  details?: readonly { path: string; message: string }[];
+  cause?: unknown;
+}
+
+/**
+ * An error returned by the API, already translated into something the UI can
+ * render. `status` is preserved so callers can distinguish "not found" from
+ * "not allowed" without parsing strings.
+ */
+export class ApiError extends Error {
+  readonly code: string | undefined;
+  readonly details: readonly { path: string; message: string }[] | undefined;
+
+  constructor(
+    readonly status: number,
+    message: string,
+    options: ApiErrorOptions = {},
+  ) {
+    super(message, { cause: options.cause });
+    this.name = 'ApiError';
+    this.code = options.code;
+    this.details = options.details;
+  }
+
+  /** True when the caller can fix this by changing their input. */
+  get isClientError(): boolean {
+    return this.status >= 400 && this.status < 500;
+  }
+}
+
+interface ErrorBody {
+  message?: string;
+  code?: string;
+  details?: { path: string; message: string }[];
+}
+
+/**
+ * Builds an ApiError from a failed response. A body that is not JSON, or has no
+ * message, still produces a usable error rather than throwing again.
+ */
+export async function apiErrorFrom(response: Response): Promise<ApiError> {
+  let body: ErrorBody = {};
+  try {
+    body = (await response.json()) as ErrorBody;
+  } catch {
+    // Not JSON. The status alone is what we have.
+  }
+
+  return new ApiError(
+    response.status,
+    body.message ?? `Request failed with status ${response.status}`,
+    {
+      ...(body.code ? { code: body.code } : {}),
+      ...(body.details ? { details: body.details } : {}),
+    },
+  );
+}

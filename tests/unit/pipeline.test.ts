@@ -240,3 +240,58 @@ describe('generateProject', () => {
     });
   });
 });
+
+describe('AI documentation and framework-owned files', () => {
+  it('appends to files the framework CLI already wrote, instead of replacing them', async () => {
+    registerGenerator(
+      fakeGenerator(recorded, {
+        async initialize(context) {
+          await fs.mkdir(context.targetDir, { recursive: true });
+          // Next.js writes a managed block here and re-inserts it on every run.
+          await fs.writeFile(
+            path.join(context.targetDir, 'AGENTS.md'),
+            '<!-- BEGIN:framework-rules -->\nFramework instructions.\n<!-- END:framework-rules -->\n',
+          );
+          // A framework .gitignore carries entries our shared one knows nothing
+          // about; losing them would commit the build output.
+          await fs.writeFile(path.join(context.targetDir, '.gitignore'), '/.next/\n.vercel\n');
+          await fs.writeFile(
+            path.join(context.targetDir, 'package.json'),
+            JSON.stringify({ name: 'my-api' }),
+          );
+        },
+        async generate(context) {
+          context.files.write('src/main.ts', '// x');
+          context.files.write('.gitignore', 'node_modules/\n.env\n!.env.example\n');
+          await context.files.mergeJson('package.json', { scripts: { test: 'vitest run' } });
+        },
+      }),
+    );
+
+    const result = await generateProject(request(), { logger: new MemoryLogger() });
+    const agents = await fs.readFile(path.join(result.targetDir, 'AGENTS.md'), 'utf8');
+    const gitignore = await fs.readFile(path.join(result.targetDir, '.gitignore'), 'utf8');
+
+    expect(gitignore).toContain('/.next/');
+    expect(gitignore).toContain('.vercel');
+    expect(gitignore).toContain('node_modules/');
+    // Ours comes last, so a negation of ours overrides an earlier pattern.
+    expect(gitignore.indexOf('.vercel')).toBeLessThan(gitignore.indexOf('!.env.example'));
+
+    expect(agents).toContain('<!-- BEGIN:framework-rules -->');
+    expect(agents).toContain('Framework instructions.');
+    // Ours follows, so both sets of rules survive.
+    expect(agents).toContain('Do not touch the Dockerfile.');
+    expect(agents.indexOf('Framework instructions.')).toBeLessThan(
+      agents.indexOf('Do not touch the Dockerfile.'),
+    );
+  });
+
+  it('writes AGENTS.md normally when the framework left none', async () => {
+    registerGenerator(fakeGenerator(recorded));
+    const result = await generateProject(request(), { logger: new MemoryLogger() });
+    const agents = await fs.readFile(path.join(result.targetDir, 'AGENTS.md'), 'utf8');
+
+    expect(agents.startsWith('# Agents')).toBe(true);
+  });
+});

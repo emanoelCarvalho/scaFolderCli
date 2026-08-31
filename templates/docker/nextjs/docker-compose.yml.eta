@@ -1,0 +1,16 @@
+services:
+  web:
+    build:
+      context: .
+    environment:
+      NODE_ENV: production
+      PORT: <%= it.port %>
+      # The API this client talks to. `host.docker.internal` reaches a server
+      # running on your machine; point it at a real URL in any other setting.
+      API_URL: ${API_URL:-http://host.docker.internal:3000}
+<% if (it.hasAuth) { -%>
+      SESSION_COOKIE_NAME: <%= it.dirName %>_session
+<% } -%>
+    ports:
+      - '<%= it.port %>:<%= it.port %>'
+    restart: unless-stopped

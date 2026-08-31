@@ -1,0 +1,16 @@
+# Copy to .env.local and fill in. Never commit .env.local.
+# Every variable here is validated by src/lib/env.ts.
+#
+# Nothing is prefixed NEXT_PUBLIC_: none of this belongs in the browser bundle.
+
+NODE_ENV=development
+
+# Base URL of the API this client talks to, without a trailing slash.
+# Generate a matching backend with:
+#   npx scafoldercli create my-api --preset nestjs-api
+API_URL=http://localhost:3000
+<% if (it.hasAuth) { -%>
+
+# Name of the httpOnly cookie holding the session.
+SESSION_COOKIE_NAME=<%= it.dirName %>_session
+<% } -%>

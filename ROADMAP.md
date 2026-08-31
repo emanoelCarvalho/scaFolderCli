@@ -20,7 +20,7 @@ previous one is red.**
 - [x] Repository documentation and ADRs
 - [x] Unit test suite, lint, typecheck, build
 
-## Phase 2 — NestJS (the Golden Path)
+## Phase 2 — NestJS (the Golden Path) ✅
 
 The first complete vertical slice, and the reference every other framework
 follows:
@@ -70,10 +70,26 @@ file comes from scafoldercli's own layers.
 - [ ] Layered and clean architecture layouts
 - [ ] MySQL, SQLite and MongoDB
 
-## Phase 4 — Next.js
+## Phase 4 — Next.js ✅
 
-Web client: API client, auth client, validation, routing, layout, and only the
-components that are genuinely reusable.
+A web client, not a full-stack server (see `docs/adr/0005-frontend-scope.md`).
+
+- [x] Delegate initialisation to `create-next-app` (App Router, Tailwind, src/)
+- [x] Validated `server-only` configuration and a single API client
+- [x] Authentication as a backend-for-frontend: tokens live in httpOnly cookies
+      and never reach the browser (`docs/adr/0009-nextjs-auth-bff.md`)
+- [x] Route handlers for register, login, refresh and logout
+- [x] Middleware route protection, with every protected page re-checking
+- [x] The component set from the spec: button, fields, modal, toast, spinner,
+      and loading / empty / error states
+- [x] Vitest with Testing Library, querying by role and label
+- [x] Dockerfile on standalone output, compose file, `.dockerignore`
+- [x] Golden project smoke test: install → typecheck → lint → format → test →
+      build → docker build
+- [x] Verified running: middleware redirects, cookies are httpOnly, the response
+      body carries no token, the dashboard renders, logout clears the session
+- [ ] Jest
+- [ ] Layered architecture layout
 
 ## Phase 5 — Svelte
 

@@ -1,0 +1,43 @@
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { Spinner } from './spinner';
+
+type Variant = 'primary' | 'secondary' | 'danger';
+
+const VARIANTS: Record<Variant, string> = {
+  primary: 'bg-foreground text-background hover:opacity-90',
+  secondary: 'border border-black/15 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/10',
+  danger: 'bg-red-600 text-white hover:bg-red-700',
+};
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+  /** Shows a spinner and blocks interaction. Use for in-flight requests. */
+  loading?: boolean;
+  children: ReactNode;
+}
+
+export function Button({
+  variant = 'primary',
+  loading = false,
+  disabled,
+  className = '',
+  children,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      // `type` defaults to "submit" inside a form, which submits by accident far
+      // more often than it is wanted. Callers opt in explicitly.
+      type="button"
+      // aria-busy tells assistive technology the control is working, which the
+      // spinner alone does not.
+      aria-busy={loading}
+      disabled={disabled ?? loading}
+      className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
+      {...props}
+    >
+      {loading && <Spinner size={16} />}
+      {children}
+    </button>
+  );
+}

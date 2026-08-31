@@ -1,0 +1,52 @@
+'use client';
+
+import { useId } from 'react';
+import type { InputHTMLAttributes } from 'react';
+import { Input } from './input';
+
+export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
+  label: string;
+  /** Message shown below the control. Also marks the control invalid. */
+  error?: string;
+  hint?: string;
+}
+
+/**
+ * A labelled text input with hint and error wiring.
+ *
+ * Connecting a label, a hint and an error message to a control with the right
+ * ids is the single most common place accessible forms break, so it happens
+ * here once and every form gets it.
+ */
+export function TextField({ label, error, hint, ...props }: TextFieldProps) {
+  const id = useId();
+  const hintId = `${id}-hint`;
+  const errorId = `${id}-error`;
+  const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ');
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <Input
+        id={id}
+        invalid={Boolean(error)}
+        aria-describedby={describedBy || undefined}
+        {...props}
+      />
+      {hint && !error && (
+        <p id={hintId} className="text-xs text-foreground/60">
+          {hint}
+        </p>
+      )}
+      {error && (
+        // `role="alert"` so the message is announced when it appears, not only
+        // when the field is focused again.
+        <p id={errorId} role="alert" className="text-xs text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}

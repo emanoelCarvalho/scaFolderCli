@@ -19,9 +19,9 @@ const PLACEHOLDER_SECRET = /^([A-Z0-9_]*(?:SECRET|KEY|TOKEN))=replace-me\S*$/gm;
  * `.env` is gitignored by the base layer, and `.env.example` keeps its
  * placeholders so the committed file still documents what is required.
  */
-export function writeLocalEnvFile(files: ProjectFiles, example: string): void {
+export function writeLocalEnvFile(files: ProjectFiles, example: string, target = '.env'): void {
   files.write(
-    '.env',
+    target,
     example.replace(PLACEHOLDER_SECRET, (_match, name: string) => `${name}=${generateSecret()}`),
   );
 }

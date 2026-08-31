@@ -35,8 +35,15 @@ export interface TemplateData {
 /** Node major version baked into Dockerfiles and `engines`. */
 export const TARGET_NODE_VERSION = '22';
 
-/** Every generated app listens here by default, overridable through PORT. */
-export const DEFAULT_PORT = 3000;
+/** Default port for an API. Overridable through PORT. */
+export const DEFAULT_API_PORT = 3000;
+
+/**
+ * Default port for a web client. Deliberately different from the API's: the two
+ * are generated to run against each other, and colliding on 3000 would make the
+ * first thing a user tries fail.
+ */
+export const DEFAULT_WEB_PORT = 3001;
 
 const DATABASE_PORTS: Record<ProjectConfig['database'], number> = {
   postgresql: 5432,
@@ -74,7 +81,7 @@ export function buildTemplateData(config: ProjectConfig): TemplateData {
     isMongoose: config.orm === 'mongoose',
 
     isRelational: ['postgresql', 'mysql', 'sqlite'].includes(config.database),
-    port: DEFAULT_PORT,
+    port: config.projectType === 'web' ? DEFAULT_WEB_PORT : DEFAULT_API_PORT,
     databasePort: DATABASE_PORTS[config.database],
     databaseImage: DATABASE_IMAGES[config.database],
   };

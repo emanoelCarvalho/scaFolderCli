@@ -1,0 +1,21 @@
+export interface SpinnerProps {
+  size?: number;
+  label?: string;
+}
+
+/**
+ * Decorative by default: when a spinner sits inside a control that already
+ * announces its state, a second announcement is noise. Pass `label` when the
+ * spinner is the only thing on screen.
+ */
+export function Spinner({ size = 20, label }: SpinnerProps) {
+  return (
+    <span
+      role={label ? 'status' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+      className="inline-block animate-spin rounded-full border-2 border-current border-t-transparent"
+      style={{ width: size, height: size }}
+    />
+  );
+}

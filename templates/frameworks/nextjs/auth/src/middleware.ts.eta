@@ -1,0 +1,29 @@
+import { NextResponse, type NextRequest } from 'next/server';
+
+/**
+ * Redirects signed-out visitors away from protected routes before a page is
+ * rendered.
+ *
+ * This is a convenience, not the security boundary: it only checks that a
+ * cookie is present, never that it is valid. Every protected page re-checks the
+ * session, and the API remains the authority.
+ */
+const PROTECTED_PREFIXES = ['/dashboard'];
+
+export function middleware(request: NextRequest): NextResponse {
+  const cookieName = process.env['SESSION_COOKIE_NAME'] ?? '<%= it.dirName %>_session';
+  const isProtected = PROTECTED_PREFIXES.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix),
+  );
+
+  if (!isProtected || request.cookies.has(cookieName)) return NextResponse.next();
+
+  const signIn = new URL('/login', request.url);
+  return NextResponse.redirect(signIn);
+}
+
+export const config = {
+  // Skip static assets and Next internals; matching them wastes work on every
+  // image and chunk the browser requests.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+};

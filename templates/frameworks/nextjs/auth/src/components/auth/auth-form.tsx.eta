@@ -1,0 +1,114 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { PasswordField } from '@/components/ui/password-field';
+import { TextField } from '@/components/ui/text-field';
+import { useToast } from '@/components/ui/toast';
+import { credentialsSchema, loginSchema } from '@/lib/auth/schemas';
+
+interface ErrorDetail {
+  path: string;
+  message: string;
+}
+
+interface ErrorBody {
+  message?: string;
+  details?: ErrorDetail[];
+}
+
+export interface AuthFormProps {
+  mode: 'login' | 'register';
+}
+
+/**
+ * Sign-in and sign-up share every mechanic — validate, post, redirect — and
+ * differ only in labels and endpoint. One component with a mode is easier to
+ * keep consistent than two that drift.
+ *
+ * The form posts to this application's own route handler, never to the API, so
+ * no token is ever handled here. See docs/adr/0009-nextjs-auth-bff.md.
+ */
+export function AuthForm({ mode }: AuthFormProps) {
+  const router = useRouter();
+  const toast = useToast();
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const isRegister = mode === 'register';
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrors({});
+
+    const form = new FormData(event.currentTarget);
+    const input = {
+      email: String(form.get('email') ?? ''),
+      password: String(form.get('password') ?? ''),
+    };
+
+    // Client-side validation is feedback, not trust: the handler and the API
+    // both validate again.
+    const schema = isRegister ? credentialsSchema : loginSchema;
+    const parsed = schema.safeParse(input);
+    if (!parsed.success) {
+      setErrors(
+        Object.fromEntries(
+          parsed.error.issues.map((issue) => [String(issue.path[0] ?? ''), issue.message]),
+        ),
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/auth/${mode}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(parsed.data),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as ErrorBody;
+        if (body.details?.length) {
+          setErrors(Object.fromEntries(body.details.map((d) => [d.path, d.message])));
+        }
+        toast.show(body.message ?? 'Something went wrong', 'error');
+        return;
+      }
+
+      // `refresh` re-runs the server components so the new session is visible.
+      router.replace('/dashboard');
+      router.refresh();
+    } catch {
+      toast.show('Could not reach the server. Check your connection.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      <TextField
+        label="Email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        required
+        error={errors['email']}
+      />
+      <PasswordField
+        label="Password"
+        name="password"
+        autoComplete={isRegister ? 'new-password' : 'current-password'}
+        required
+        error={errors['password']}
+        hint={isRegister ? 'At least 12 characters.' : undefined}
+      />
+      <Button type="submit" loading={submitting} className="mt-2">
+        {isRegister ? 'Create account' : 'Sign in'}
+      </Button>
+    </form>
+  );
+}

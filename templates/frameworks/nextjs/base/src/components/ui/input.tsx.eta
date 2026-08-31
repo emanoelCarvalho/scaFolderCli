@@ -1,0 +1,17 @@
+import type { InputHTMLAttributes } from 'react';
+
+export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
+  invalid?: boolean;
+};
+
+export function Input({ invalid = false, className = '', ...props }: InputProps) {
+  return (
+    <input
+      aria-invalid={invalid || undefined}
+      className={`w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-foreground/30 disabled:opacity-60 ${
+        invalid ? 'border-red-500' : 'border-black/15 dark:border-white/20'
+      } ${className}`}
+      {...props}
+    />
+  );
+}

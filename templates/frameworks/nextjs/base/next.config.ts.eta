@@ -1,0 +1,15 @@
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+<% if (it.hasDocker) { -%>
+  // Emits a self-contained server with only the files it needs, which is what
+  // the Dockerfile copies into the runtime stage.
+  output: 'standalone',
+<% } -%>
+  // Type errors fail the build. A scaffolder that lets them through teaches the
+  // project to ignore them. Next 16 no longer runs ESLint during the build, so
+  // linting is a separate script and a separate CI step.
+  typescript: { ignoreBuildErrors: false },
+};
+
+export default nextConfig;

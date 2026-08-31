@@ -1,0 +1,24 @@
+import path from 'node:path';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    // Mirrors the `@/*` path in tsconfig.json. Done here rather than with a
+    // plugin so the mapping has one fewer dependency and one obvious home.
+    alias: { '@': path.resolve(import.meta.dirname, './src') },
+  },
+  test: {
+    // `globals: true` keeps spec files free of runner-specific imports.
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts'],
+    include: ['src/**/*.spec.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.spec.{ts,tsx}', 'src/app/**/layout.tsx'],
+    },
+  },
+});

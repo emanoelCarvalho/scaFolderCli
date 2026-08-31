@@ -1,0 +1,14 @@
+import { Spinner } from '../ui/spinner';
+
+export interface LoadingStateProps {
+  label?: string;
+}
+
+export function LoadingState({ label = 'Loading' }: LoadingStateProps) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-12">
+      <Spinner size={28} label={label} />
+      <p className="text-sm text-foreground/70">{label}</p>
+    </div>
+  );
+}

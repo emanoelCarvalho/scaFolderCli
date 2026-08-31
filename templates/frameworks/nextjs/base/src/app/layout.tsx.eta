@@ -1,0 +1,24 @@
+import type { Metadata } from 'next';
+import './globals.css';
+<% if (it.hasAuth) { -%>
+import { ToastProvider } from '@/components/ui/toast';
+<% } -%>
+
+export const metadata: Metadata = {
+  title: '<%= it.projectName %>',
+  description: 'Generated with scafoldercli',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className="min-h-screen bg-background text-foreground antialiased">
+<% if (it.hasAuth) { -%>
+        <ToastProvider>{children}</ToastProvider>
+<% } else { -%>
+        {children}
+<% } -%>
+      </body>
+    </html>
+  );
+}

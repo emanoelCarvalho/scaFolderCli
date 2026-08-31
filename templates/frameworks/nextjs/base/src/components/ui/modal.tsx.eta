@@ -1,0 +1,46 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
+
+export interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}
+
+/**
+ * Built on the native `<dialog>` element.
+ *
+ * `showModal()` gives focus trapping, Escape-to-close, inert background content
+ * and the correct role for free — all things a hand-rolled modal gets wrong.
+ */
+export function Modal({ open, onClose, title, children }: ModalProps) {
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+
+  return (
+    <dialog
+      ref={ref}
+      // Fires for Escape as well as close(), so state stays in sync with the
+      // element instead of drifting when the user dismisses it natively.
+      onClose={onClose}
+      onClick={(event) => {
+        // Clicking the backdrop targets the dialog itself, not its children.
+        if (event.target === ref.current) onClose();
+      }}
+      className="m-auto w-full max-w-md rounded-lg bg-background p-6 text-foreground backdrop:bg-black/50"
+    >
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="mt-4">{children}</div>
+    </dialog>
+  );
+}

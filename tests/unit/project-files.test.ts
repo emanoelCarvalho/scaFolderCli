@@ -138,3 +138,49 @@ describe('sortObjectKeys', () => {
     ]);
   });
 });
+
+describe('JSON formatting', () => {
+  async function write(value: Record<string, unknown>): Promise<string> {
+    const files = new ProjectFiles(root);
+    files.writeJson('out.json', value as never);
+    return (await files.read('out.json')) ?? '';
+  }
+
+  it('keeps a short array of primitives on one line, as Prettier does', async () => {
+    expect(await write({ lib: ['dom', 'dom.iterable', 'esnext'] })).toContain(
+      '"lib": ["dom", "dom.iterable", "esnext"]',
+    );
+  });
+
+  it('collapses a nested short array too', async () => {
+    const result = await write({ compilerOptions: { paths: { '@/*': ['./src/*'] } } });
+    expect(result).toContain('"@/*": ["./src/*"]');
+  });
+
+  it('leaves a long array expanded', async () => {
+    const long = Array.from({ length: 12 }, (_, i) => `a-fairly-long-entry-number-${i}`);
+    const result = await write({ files: long });
+
+    expect(result).not.toContain('"files": ["a-fairly-long-entry-number-0"');
+    expect(result).toContain('\n    "a-fairly-long-entry-number-0",');
+  });
+
+  it('leaves an array of objects expanded', async () => {
+    const result = await write({ plugins: [{ name: 'next' }] });
+    expect(result).toContain('"plugins": [\n');
+  });
+
+  it('still produces valid JSON', async () => {
+    const value = {
+      name: 'x',
+      lib: ['a', 'b'],
+      nested: { deep: { list: [1, 2, 3], flag: true } },
+      plugins: [{ name: 'next' }],
+    };
+    expect(JSON.parse(await write(value))).toEqual(value);
+  });
+
+  it('round-trips an empty array', async () => {
+    expect(JSON.parse(await write({ items: [] }))).toEqual({ items: [] });
+  });
+});

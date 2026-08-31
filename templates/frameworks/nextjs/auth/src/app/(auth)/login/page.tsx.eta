@@ -1,0 +1,23 @@
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { AuthForm } from '@/components/auth/auth-form';
+import { getSession } from '@/lib/auth/session';
+
+export const metadata = { title: 'Sign in' };
+
+export default async function LoginPage() {
+  if (await getSession()) redirect('/dashboard');
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
+      <h1 className="text-2xl font-semibold">Sign in</h1>
+      <AuthForm mode="login" />
+      <p className="text-sm text-foreground/70">
+        No account?{' '}
+        <Link href="/register" className="underline">
+          Create one
+        </Link>
+      </p>
+    </main>
+  );
+}

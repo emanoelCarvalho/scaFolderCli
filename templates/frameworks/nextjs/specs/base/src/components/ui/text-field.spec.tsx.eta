@@ -1,0 +1,26 @@
+import { render, screen } from '@testing-library/react';
+import { TextField } from './text-field';
+
+describe('TextField', () => {
+  it('associates the label with the control', () => {
+    render(<TextField label="Email" name="email" />);
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+  });
+
+  it('describes the control with its hint', () => {
+    render(<TextField label="Email" hint="We never share this." />);
+    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription('We never share this.');
+  });
+
+  it('marks the control invalid and announces the error', () => {
+    render(<TextField label="Email" error="Enter a valid email address" />);
+
+    expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid email address');
+  });
+
+  it('hides the hint once there is an error, so only one message is announced', () => {
+    render(<TextField label="Email" hint="We never share this." error="Required" />);
+    expect(screen.queryByText('We never share this.')).not.toBeInTheDocument();
+  });
+});

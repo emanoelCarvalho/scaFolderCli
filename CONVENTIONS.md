@@ -61,6 +61,10 @@ Rules for working in this repository. For the projects it generates, see the
 - Use `<% ... -%>` for control flow so generated files have no stray blank lines.
 - Never put a secret, a token or a personal path in a template. `.env.example`
   only, never `.env`.
+- A leading `_` on any path segment becomes `.` in the output. That collides
+  with frameworks that give `_` its own meaning — Next.js treats `_folder` as a
+  private route segment — so never name a template file `_something` unless a
+  dotfile is what you want.
 
 ## Tests
 

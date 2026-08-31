@@ -1,0 +1,21 @@
+import { NextResponse } from 'next/server';
+import { loginWithApi } from '@/lib/auth/auth-api';
+import { loginSchema } from '@/lib/auth/schemas';
+import { setSession } from '@/lib/auth/session';
+import { errorResponse, readJson } from '@/lib/api/route-helpers';
+
+export async function POST(request: Request): Promise<NextResponse> {
+  const parsed = loginSchema.safeParse(await readJson(request));
+
+  if (!parsed.success) {
+    return NextResponse.json({ message: 'Enter your email and password' }, { status: 400 });
+  }
+
+  try {
+    const { user, session } = await loginWithApi(parsed.data.email, parsed.data.password);
+    await setSession(session);
+    return NextResponse.json({ user });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}

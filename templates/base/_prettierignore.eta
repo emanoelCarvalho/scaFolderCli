@@ -1,6 +1,14 @@
 node_modules
 dist
 coverage
+<% if (it.config.framework === 'nextjs') { -%>
+.next
+
+# Written by create-next-app, in its own style. Reformatting them would mean
+# fighting the framework over files it may rewrite.
+eslint.config.mjs
+postcss.config.mjs
+<% } -%>
 <% if (it.isPrisma) { -%>
 prisma/migrations
 <% } -%>

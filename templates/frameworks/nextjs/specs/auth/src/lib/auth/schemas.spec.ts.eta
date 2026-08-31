@@ -1,0 +1,43 @@
+import { credentialsSchema, loginSchema } from './schemas';
+
+describe('credentialsSchema', () => {
+  it('accepts a valid email and a long password', () => {
+    const result = credentialsSchema.safeParse({
+      email: 'someone@example.com',
+      password: 'correct-horse-battery',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a short password with a message a user can act on', () => {
+    const result = credentialsSchema.safeParse({
+      email: 'someone@example.com',
+      password: 'short',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toContain('at least 12 characters');
+  });
+
+  it('rejects a malformed email', () => {
+    const result = credentialsSchema.safeParse({
+      email: 'nope',
+      password: 'correct-horse-battery',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('loginSchema', () => {
+  it('does not impose a length rule on an existing password', () => {
+    // Sign-in must accept whatever the account was created with, including
+    // passwords predating a stricter rule.
+    const result = loginSchema.safeParse({ email: 'someone@example.com', password: 'old' });
+    expect(result.success).toBe(true);
+  });
+
+  it('still requires a password', () => {
+    const result = loginSchema.safeParse({ email: 'someone@example.com', password: '' });
+    expect(result.success).toBe(false);
+  });
+});

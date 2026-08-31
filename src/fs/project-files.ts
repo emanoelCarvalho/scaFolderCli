@@ -40,7 +40,7 @@ export class ProjectFiles {
   }
 
   writeJson(relativePath: string, value: JsonObject): void {
-    this.write(relativePath, `${JSON.stringify(value, null, 2)}\n`);
+    this.write(relativePath, `${formatJson(value)}\n`);
   }
 
   delete(relativePath: string): void {
@@ -117,6 +117,63 @@ export class ProjectFiles {
     }
     this.operations.clear();
   }
+}
+
+/** Longest line `formatJson` will produce before leaving an array expanded. */
+const JSON_PRINT_WIDTH = 100;
+
+/**
+ * `JSON.stringify` always puts each array element on its own line; Prettier
+ * keeps short arrays inline. Generated manifests are checked by the project's
+ * own `format:check`, so the two have to agree — a freshly generated project
+ * failing its own formatter is a defect.
+ *
+ * Only arrays of primitives are collapsed, and only when the result fits.
+ */
+export function formatJson(value: JsonObject): string {
+  const expanded = JSON.stringify(value, null, 2);
+
+  return expanded
+    .split('\n')
+    .reduce<{ lines: string[]; buffer: string[] | null }>(
+      (state, line) => {
+        if (state.buffer) {
+          state.buffer.push(line);
+          if (!line.trimEnd().endsWith(']') && !line.trimEnd().endsWith('],')) return state;
+
+          // The buffered lines are kept verbatim, so an array that stays
+          // expanded keeps the indentation JSON.stringify gave it.
+          const collapsed = collapseArray(state.buffer);
+          state.lines.push(...(collapsed !== null ? [collapsed] : state.buffer));
+          state.buffer = null;
+          return state;
+        }
+
+        // An array opens when the line ends with `[` and nothing follows.
+        if (/\[$/.test(line.trimEnd())) {
+          state.buffer = [line];
+          return state;
+        }
+
+        state.lines.push(line);
+        return state;
+      },
+      { lines: [], buffer: null },
+    )
+    .lines.join('\n');
+}
+
+/** Joins a buffered array onto one line, or returns null when it should stay expanded. */
+function collapseArray(buffer: string[]): string | null {
+  const opening = buffer[0] ?? '';
+  const closing = (buffer.at(-1) ?? '').trim();
+  const elements = buffer.slice(1, -1).map((line) => line.trim());
+
+  // Nested structures keep their own layout; only flat arrays are collapsed.
+  if (elements.some((element) => /[[{]/.test(element))) return null;
+
+  const inline = `${opening}${elements.join(' ')}${closing}`;
+  return inline.length <= JSON_PRINT_WIDTH ? inline : null;
 }
 
 function ensureTrailingNewline(content: string): string {

@@ -9,10 +9,11 @@ npx scafoldercli create
 Answer a few questions, get a project that installs, tests, builds, runs in a
 container, and documents itself — for humans and for coding agents.
 
-> **Status: early development.** The core engine and the NestJS path are
-> complete and tested end to end. Express, Next.js and Svelte are not
-> implemented yet. Run `npx scafoldercli list` to see what this build can
-> actually generate — nothing is offered that it cannot produce.
+> **Status: early development.** The NestJS, Express and Next.js paths are
+> complete, and each is verified by generating a real project that installs,
+> lints, tests, builds, runs in a container and serves authentication. Svelte is
+> not implemented yet. Run `npx scafoldercli list` to see what this build can
+> generate — nothing is offered that it cannot produce.
 
 ## What it generates
 
@@ -143,25 +144,39 @@ Run `scafoldercli list` for the full matrix.
 
 ### What the implemented frameworks produce today
 
-| Choice             | NestJS             | Express          |
-| ------------------ | ------------------ | ---------------- |
-| Project type       | REST API           | REST API         |
-| Architecture       | Modular            | Modular          |
-| Database           | PostgreSQL, none   | PostgreSQL, none |
-| ORM                | Prisma, none       | Prisma, none     |
-| Authentication     | JWT, none          | JWT, none        |
-| Repository pattern | Yes or no          | Yes or no        |
-| Tests              | Vitest, Jest, none | Vitest, none     |
-| Docker             | Yes or no          | Yes or no        |
+| Choice             | NestJS             | Express          | Next.js      |
+| ------------------ | ------------------ | ---------------- | ------------ |
+| Project type       | REST API           | REST API         | Web client   |
+| Architecture       | Modular            | Modular          | Modular      |
+| Database           | PostgreSQL, none   | PostgreSQL, none | none         |
+| ORM                | Prisma, none       | Prisma, none     | none         |
+| Authentication     | JWT, none          | JWT, none        | JWT, none    |
+| Repository pattern | Yes or no          | Yes or no        | —            |
+| Tests              | Vitest, Jest, none | Vitest, none     | Vitest, none |
+| Docker             | Yes or no          | Yes or no        | Yes or no    |
 
 Layered and clean layouts, other databases and other ORMs are planned; they are
 not offered until the generator can actually produce them.
 
-The two paths differ where their ecosystems differ. NestJS delegates its
-baseline to `@nestjs/cli` and uses class-validator and its own DI container.
-Express has no official scaffolder, so scafoldercli supplies the whole
-structure: ESM, zod, pino, `jose`, and a composition root instead of a DI
-container. See [`docs/adr/0008-express-stack.md`](docs/adr/0008-express-stack.md).
+Each path follows its own ecosystem. NestJS delegates its baseline to
+`@nestjs/cli` and uses class-validator and its own DI container. Express has no
+official scaffolder, so scafoldercli supplies the whole structure: ESM, zod,
+pino, `jose`, and a composition root. Next.js builds on `create-next-app` with
+the App Router and Tailwind, and keeps authentication on the server — see
+[`docs/adr/0008-express-stack.md`](docs/adr/0008-express-stack.md) and
+[`docs/adr/0009-nextjs-auth-bff.md`](docs/adr/0009-nextjs-auth-bff.md).
+
+### Front end and back end, generated to fit
+
+The Next.js client expects the API shape the backend generators produce:
+
+```bash
+npx scafoldercli create my-api --preset nestjs-api
+npx scafoldercli create my-web --preset nextjs-web   # then set API_URL
+```
+
+The client never holds a token. It calls its own route handlers, which read an
+httpOnly cookie and talk to the API server-side.
 
 ## AI documentation
 

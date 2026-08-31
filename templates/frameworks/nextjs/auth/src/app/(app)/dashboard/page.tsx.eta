@@ -1,0 +1,46 @@
+import { redirect } from 'next/navigation';
+import { SignOutButton } from '@/components/auth/sign-out-button';
+import { ErrorState } from '@/components/states/error-state';
+import { fetchMe } from '@/lib/auth/auth-api';
+import { getSession } from '@/lib/auth/session';
+import type { SessionUser } from '@/lib/auth/session';
+
+export const metadata = { title: 'Dashboard' };
+
+export default async function DashboardPage() {
+  const session = await getSession();
+  // The middleware already redirects, but a page must never assume it ran:
+  // this is the check that actually protects the data.
+  if (!session) redirect('/login');
+
+  let user: SessionUser;
+  try {
+    user = await fetchMe(session.accessToken);
+  } catch {
+    return (
+      <main className="mx-auto max-w-2xl px-6 py-16">
+        <ErrorState
+          title="Could not load your account"
+          message="The API did not respond. Try again in a moment."
+          action={<SignOutButton />}
+        />
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 px-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Signed in</h1>
+        <p className="mt-1 text-sm text-foreground/70">{user.email}</p>
+      </div>
+      <p className="text-sm text-foreground/70">
+        This page is rendered on the server and reads the session from an httpOnly cookie. The
+        access token never reaches the browser.
+      </p>
+      <div>
+        <SignOutButton />
+      </div>
+    </main>
+  );
+}
