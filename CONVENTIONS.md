@@ -74,6 +74,11 @@ Rules for working in this repository. For the projects it generates, see the
   passes because `pnpm` happens to be on the developer's machine is a red CI
   job waiting to happen; reproduce the environment with
   `docker run --rm node:22-alpine` before trusting a green local run.
+- **Never write an absolute path as a literal in an assertion.** `'/work/api'`
+  passes on macOS and fails on Windows, where the same call resolves to
+  `C:\work\api`. Build the expected value with `path.join` / `path.resolve`.
+  Windows cannot be run locally here, so this is caught by discipline, not by
+  the test suite.
 - The generator registry is global; call `clearGenerators()` in `beforeEach`.
 - Golden-project tests must fail loudly. Never mark one as skipped to get green.
 

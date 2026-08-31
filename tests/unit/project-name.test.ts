@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   checkProjectName,
@@ -45,25 +46,30 @@ describe('directoryNameFor', () => {
 });
 
 describe('resolveTargetDir', () => {
+  // Expectations are built with `path`, never written as literals: on Windows
+  // these resolve to `C:\work\api`, and a hard-coded POSIX string would fail
+  // there while passing everywhere else.
+  const cwd = path.resolve(path.sep, 'work');
+
   it('defaults to the directory name under cwd', () => {
-    expect(resolveTargetDir('@acme/api', '/work')).toBe('/work/api');
+    expect(resolveTargetDir('@acme/api', cwd)).toBe(path.join(cwd, 'api'));
   });
 
   it('honours an explicit directory', () => {
-    expect(resolveTargetDir('api', '/work', 'services/api')).toBe('/work/services/api');
+    expect(resolveTargetDir('api', cwd, 'services/api')).toBe(path.join(cwd, 'services', 'api'));
   });
 
   it('supports scaffolding into the current directory', () => {
-    expect(resolveTargetDir('api', '/work', '.')).toBe('/work');
+    expect(resolveTargetDir('api', cwd, '.')).toBe(cwd);
   });
 });
 
 describe('suggestProjectName', () => {
   it('derives a valid name from a folder', () => {
-    expect(suggestProjectName('/work/My Project')).toBe('my-project');
+    expect(suggestProjectName(path.join('work', 'My Project'))).toBe('my-project');
   });
 
   it('falls back to app when nothing usable remains', () => {
-    expect(suggestProjectName('/work/___')).toBe('app');
+    expect(suggestProjectName(path.join('work', '___'))).toBe('app');
   });
 });
