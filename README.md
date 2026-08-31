@@ -232,4 +232,3 @@ node dist/cli.js list
 ## License
 
 MIT
-
